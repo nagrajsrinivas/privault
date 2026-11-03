@@ -173,6 +173,31 @@
 </head>
 <body>
 
+    <!-- Scenario 1: Share Payload Modal -->
+    <div id="share-modal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 10px; color: var(--accent);">📤 P2P Share Payload (Scenario 1)</h3>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px;">Package and encrypt this record for offline transfer via file or QR payload:</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                <div class="form-group">
+                    <label>Select Recipient (Defined in Settings)</label>
+                    <select id="share-target-member-select"></select>
+                </div>
+                <div class="form-group">
+                    <label>Payload Data String (Copy or Scan)</label>
+                    <textarea id="share-payload-text" readonly style="background: #090d16; color: var(--success); height: 90px; font-family: monospace; font-size: 11px; padding: 6px;"></textarea>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-success" onclick="downloadPrivaultPayloadFile()" style="flex: 1;">💾 Download .privault File</button>
+                <button class="btn" onclick="copyPayloadToClipboard()" style="flex: 1;">📋 Copy Payload</button>
+                <button class="btn btn-danger" onclick="document.getElementById('share-modal').style.display='none'" style="flex: 1;">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Lock Overlay -->
     <div id="lock-overlay">
         <h2 style="margin-bottom: 15px; color: var(--accent);">PriVaultHub Security Enclave</h2>
@@ -609,6 +634,7 @@
 
     window.onload = function() {
         initApp();
+        if (savePhoneBtn) savePhoneBtn.onclick = handleSavePhone;
     };
 
     async function probeLocalServerConnection() {
@@ -638,6 +664,64 @@
         }
     }
 
+    let currentShareRecordId = null;
+
+    function openSharePayloadModal(recordId, event) {
+        if (event) event.stopPropagation();
+        currentShareRecordId = recordId;
+        
+        var record = appState.records.find(function(r) { return r.id === recordId; });
+        if (!record) return alert('Record not found.');
+
+        // Populate member dropdown
+        var memberSelect = document.getElementById('share-target-member-select');
+        memberSelect.innerHTML = '';
+        if (appState.settings.members && appState.settings.members.length > 0) {
+            appState.settings.members.forEach(function(m) {
+                memberSelect.innerHTML += '<option value="' + m.phone + '">' + m.name + ' (' + m.phone + ' - Scope: ' + m.scope + ')</option>';
+            });
+        } else {
+            memberSelect.innerHTML = '<option value="">-- No Family Members Configured in Settings --</option>';
+        }
+
+        // Package the payload slice
+        var payloadObject = {
+            version: "1.0",
+            timestamp: Date.now(),
+            senderPhone: appState.userPhone,
+            record: record
+        };
+
+        var payloadString = btoa(JSON.stringify(payloadObject));
+        document.getElementById('share-payload-text').value = payloadString;
+        document.getElementById('share-modal').style.display = 'flex';
+    }
+
+    function downloadPrivaultPayloadFile() {
+        var payloadString = document.getElementById('share-payload-text').value;
+        if (!payloadString) return;
+
+        var record = appState.records.find(function(r) { return r.id === currentShareRecordId; });
+        var fileName = 'privault_share_' + (record ? (record.name || record.category) : 'record') + '.privault';
+
+        var blob = new Blob([payloadString], { type: 'text/plain;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        alert('Payload file downloaded successfully. Transfer it to the recipient to import.');
+    }
+
+    function copyPayloadToClipboard() {
+        var textarea = document.getElementById('share-payload-text');
+        textarea.select();
+        navigator.clipboard.writeText(textarea.value);
+        alert('Payload copied to clipboard!');
+    }
     async function autoPushLocalWifiBackup() {
         if (!appState.encryptionKey || !appState.userPhone) return;
         var encryptedDb = localStorage.getItem('privault_secure_db');
@@ -2098,15 +2182,21 @@
                 );
                 appState.records = JSON.parse(new TextDecoder().decode(decrypted));
             } catch (decErr) {
+                console.error("Decryption failed:", decErr);
+                alert('Decryption failed. Incorrect master password/key or corrupted local database.');
                 appState.records = [];
-                await saveState();
+                // Do NOT call saveState() here so we don't accidentally wipe user data on a typo
             }
         } else {
             appState.records = [];
-            await saveState();
+            await saveState(); // Safe here because there was no prior database
         }
 
-        document.getElementById('lock-overlay').style.display = 'none';
+        // Hide lock overlay and render UI safely
+        var lockOverlay = document.getElementById('lock-overlay');
+        if (lockOverlay) lockOverlay.style.display = 'none';
+        
+        initApp();
         renderAll();
     }
 
@@ -2125,16 +2215,38 @@
         localStorage.setItem('privault_secure_db', Array.from(combined).map(b => b.toString(16).padStart(2, '0')).join(''));
     }
 
-    function handleSavePhone() {
-        var phone = document.getElementById('user-phone-input').value.trim();
-        if(!phone) return alert('Enter a valid mobile number.');
-        appState.userPhone = phone;
-        localStorage.setItem('privault_user_phone', phone);
-        document.getElementById('display-phone').innerText = phone;
-        document.getElementById('phone-setup-container').style.display = 'none';
-        renderAll();
-        autoPushLocalWifiBackup();
+    async function handleSavePhone() {
+    var phone = document.getElementById('user-phone-input').value.trim();
+    if(!phone) return alert('Enter a valid mobile number.');
+    
+    appState.userPhone = phone;
+    localStorage.setItem('privault_user_phone', phone);
+    document.getElementById('display-phone').innerText = phone;
+    document.getElementById('phone-setup-container').style.display = 'none';
+
+    var mode = (window.PRIVAUULT_CONFIG && window.PRIVAUULT_CONFIG.PROCESSING_MODE) || 'scenario3';
+    if (mode !== 'scenario1') {
+        var localUrl = (window.PRIVAUULT_CONFIG && window.PRIVAUULT_CONFIG.API_BASE_URL) || 'http://127.0.0.1:8000';
+        try {
+            document.getElementById('network-status-note').innerText = "Syncing records for mobile ID " + phone + " from laptop hub...";
+            var res = await fetch(localUrl + '/api/sync/pull/' + encodeURIComponent(phone));
+            if (res.ok) {
+                var json = await res.json();
+                if (json.status === 'success' && json.data && json.data.encrypted_db) {
+                    localStorage.setItem('privault_secure_db', json.data.encrypted_db);
+                    alert('Successfully pulled encrypted vault records from laptop hub for mobile ID: ' + phone + '. Please unlock your vault.');
+                    location.reload();
+                    return;
+                }
+            }
+        } catch (err) {
+            console.log("No remote sync payload found on local network for this phone number yet.");
+        }
     }
+
+    renderAll();
+    autoPushLocalWifiBackup();
+    alert('Mobile ID bound successfully.');
 
     function handleExport() {
         if (!appState.encryptionKey) return alert('Unlock vault first.');
@@ -2246,9 +2358,9 @@
                     (rec.milestoneDate ? '<p><strong>Renewal Reminder:</strong> ' + safeStr(rec.milestoneDate) + '</p>' : '')
                 ) +
                 '<div class="card-actions">' +
-                    (isOwner ? '<span class="badge">Owner</span>' : '<span class="badge badge-shared">Shared Access (' + (memberMatch ? memberMatch.perm : 'Read') + ')</span>') +
-                    (rec.thumbnail ? '<button class="btn btn-success" style="padding:2px 6px; font-size:11px;" onclick="shareDocumentImage(\'' + rec.id + '\', event)">Share</button>' : '') +
-                    (rec.thumbnail ? '<button class="btn btn-danger" style="padding:2px 6px; font-size:11px;" onclick="detachRecordImage(\'' + rec.id + '\', event)" title="Detach File">Detach File</button>' : '') +
+                    (isOwner ? '<span class="badge">Owner</span>' : '<span class="badge badge-shared">Shared Access</span>') +
+                    '<button class="btn btn-success" style="padding:2px 6px; font-size:11px;" onclick="openSharePayloadModal(\'' + rec.id + '\', event)">📤 Share Payload</button>' +
+                    (rec.thumbnail ? '<button class="btn" style="padding:2px 6px; font-size:11px;" onclick="shareDocumentImage(\'' + rec.id + '\', event)">File</button>' : '') +
                     '<button class="btn-trash" onclick="deleteRecord(\'' + rec.id + '\', event)" title="Delete Record">🗑️</button>' +
                 '</div>' +
                 '</div>';

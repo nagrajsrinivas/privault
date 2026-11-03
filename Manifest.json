@@ -1,7 +1,7 @@
 {
   "name": "PriVaultHub Secure Enclave",
   "short_name": "PriVaultHub",
-  "start_url": "index.html",
+  "start_url": "launch.html",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#3b82f6",

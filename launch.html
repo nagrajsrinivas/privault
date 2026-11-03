@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriVaultHub - Connecting...</title>
+    <script src="config.js"></script>
+    <style>
+        body { background: #0f172a; color: #f8fafc; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; text-align: center; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #334155; border-top: 4px solid #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        p { color: #94a3b8; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="spinner"></div>
+    <h2>PriVaultHub Secure Enclave</h2>
+    <p id="status-text">Probing network routing (Local Wi-Fi vs Cloudflare)...</p>
+
+    <script>
+        async function resolveRoutingAndBoot() {
+            var config = window.PRIVAUULT_CONFIG;
+            var activeUrl = config.FALLBACK_MODE === "scenario1" ? "" : config.TUNNEL_API_URL;
+            var processingMode = "scenario3";
+
+            if (config.LOCAL_API_URL) {
+                try {
+                    document.getElementById('status-text').innerText = "Checking home Wi-Fi connection...";
+                    var controller = new AbortController();
+                    var timeoutId = setTimeout(() => controller.abort(), 1200); // 1.2s timeout
+                    
+                    var res = await fetch(config.LOCAL_API_URL + '/', { method: 'GET', signal: controller.signal });
+                    clearTimeout(timeoutId);
+
+                    if (res.ok) {
+                        activeUrl = config.LOCAL_API_URL;
+                        processingMode = "scenario2"; // Local Wi-Fi node active
+                        console.log("Connected to local desktop node.");
+                    }
+                } catch (err) {
+                    console.log("Local Wi-Fi node unreachable. Switching to Cloudflare Tunnel / Offline fallback.");
+                }
+            }
+
+            // Save the resolved active state to sessionStorage for index.html to use
+            sessionStorage.setItem('privault_active_api', activeUrl);
+            sessionStorage.setItem('privault_processing_mode', processingMode);
+
+            // Instant handoff to your main application interface
+            setTimeout(() => {
+                window.location.replace("index.html");
+            }, 400);
+        }
+
+        window.onload = resolveRoutingAndBoot;
+    </script>
+</body>
+</html>
