@@ -1,0 +1,2319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PriVaultHub - Air-Gapped Secure Asset & Record Manager</title>
+    
+    <!-- Safari / iOS Home Screen PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PriVaultHub">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="manifest" href="manifest.json">
+
+    <script src="config.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-dark); color: var(--text-light); padding: 15px; line-height: 1.4; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        .status-bar {
+            background: var(--card-bg);
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        input, select { background: #0f172a; border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 13px; width: 100%; }
+
+        .utility-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 15px;
+            background: var(--card-bg);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .utility-bar .search-input { flex: 1; min-width: 240px; padding: 8px 14px; border-radius: 6px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; font-size: 15px; }
+
+        .btn { background: var(--accent); color: #fff; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 12px; text-align: center; line-height: 1.2; }
+        .btn:hover { background: var(--accent-hover); }
+        .btn-success { background: var(--success); }
+        .btn-success:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-trash { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s ease; }
+        .btn-trash:hover { background: var(--danger); color: #fff; }
+        .btn-icon { background: transparent; border: 1px solid var(--border-color); color: var(--text-light); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 16px; }
+        .btn-icon:hover { background: var(--border-color); }
+
+        .nav-tier-1 { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+        .pill-btn { background: var(--card-bg); color: var(--text-light); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.2s; }
+        .pill-btn:hover { border-color: var(--accent); }
+        .pill-btn.active { background: var(--accent); border-color: #60a5fa; box-shadow: 0 0 10px rgba(59, 130, 246, 0.4); }
+
+        .repo-buttons-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 8px;
+            margin-bottom: 20px;
+            background: #111827;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .repo-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-light);
+            padding: 8px 6px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.25;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            min-height: 48px;
+        }
+        .repo-btn:hover { border-color: var(--accent); background: #1e293b; }
+        .repo-btn.active { background: var(--accent); border-color: #60a5fa; color: #fff; box-shadow: 0 0 8px rgba(59, 130, 246, 0.4); }
+
+        .drawer-section { display: none; margin-bottom: 30px; }
+        .drawer-section.active-drawer { display: block; }
+        .drawer-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 12px; color: var(--accent); }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; position: relative; transition: border-color 0.2s; cursor: pointer; }
+        .card:hover { border-color: var(--accent); }
+        .card h4 { margin-bottom: 8px; color: #fff; }
+        .card p { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 4px; }
+        .card-thumbnail { width: 100%; height: 110px; object-fit: cover; border-radius: 4px; margin-bottom: 8px; border: 1px solid var(--border-color); cursor: pointer; }
+        .card-pdf-badge { width: 100%; height: 110px; background: #0f172a; border: 1px solid var(--border-color); border-radius: 4px; margin-bottom: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--warning); font-size: 0.85rem; font-weight: bold; gap: 4px; cursor: pointer; }
+        
+        .card-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 8px; flex-wrap: wrap; gap: 4px; }
+        .card .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; background: var(--border-color); color: #fff; }
+        .card .badge-shared { background: var(--warning); color: #000; }
+
+        .form-panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 30px; }
+        .compact-form-grid {
+            background: #111827;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 10px;
+            align-items: flex-end;
+        }
+        .form-row-break { grid-column: 1 / -1; height: 0; margin: 0; padding: 0; }
+        .form-group { display: flex; flex-direction: column; width: 100%; }
+        .form-group label { font-size: 0.75rem; margin-bottom: 3px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .inline-action-group { display: flex; gap: 4px; align-items: flex-end; }
+        .inline-action-group input { flex: 1; }
+        .inline-action-group .btn { width: 64px; height: 32px; font-size: 11px; padding: 2px 4px; }
+
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.9); z-index: 2000; justify-content: center; align-items: center; padding: 10px;
+        }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 10px; width: 100%; max-width: 780px; max-height: 95vh; overflow-y: auto; }
+        .folder-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 15px; }
+        .folder-chip { background: #111827; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; text-align: center; cursor: pointer; font-size: 0.85rem; color: var(--text-light); transition: all 0.2s; }
+        .folder-chip:hover { border-color: var(--accent); background: #1e293b; }
+        .folder-chip.active { background: var(--accent); border-color: #60a5fa; font-weight: bold; }
+
+        .settings-grid-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; }
+        .settings-card-box { background: #111827; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; }
+        .settings-card-title { font-size: 0.72rem; font-weight: 700; color: var(--accent); text-transform: uppercase; margin-bottom: 2px; }
+        .settings-card-subtitle { font-size: 0.65rem; color: var(--text-muted); margin-bottom: 4px; }
+        .settings-card-input-row input[type="number"] { width: 100%; padding: 4px; font-size: 12px; text-align: center; }
+        
+        .month-selector-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-top: 4px; }
+        .month-badge { background: #1e293b; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px; text-align: center; font-size: 9px; cursor: pointer; color: var(--text-muted); }
+        .month-badge.selected { background: var(--accent); color: #fff; border-color: #60a5fa; font-weight: bold; }
+
+        #lock-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-dark); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 1000; padding: 20px; text-align: center;
+        }
+        .file-input-hidden { display: none; }
+        .member-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start; background: #111827; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); flex-wrap: wrap; }
+        .checkbox-group-container { display: flex; flex-wrap: wrap; gap: 6px; max-height: 80px; overflow-y: auto; background: #090d16; padding: 6px; border-radius: 4px; border: 1px solid var(--border-color); width: 100%; }
+        .checkbox-chip { font-size: 11px; display: flex; align-items: center; gap: 4px; color: var(--text-light); background: #1e293b; padding: 2px 6px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <!-- Lock Overlay -->
+    <div id="lock-overlay">
+        <h2 style="margin-bottom: 15px; color: var(--accent);">PriVaultHub Security Enclave</h2>
+        <p style="color: var(--text-muted); margin-bottom: 20px; max-width: 400px;">Protected by WebAuthn Biometrics or Master Password / PIN Fallback.</p>
+        
+        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 320px; align-items: center;">
+            <button class="btn btn-success" id="btn-biometric-unlock" style="font-size: 1rem; padding: 12px; width: 100%;">🔐 Unlock via Biometrics</button>
+            <div style="color: var(--text-muted); font-size: 0.85rem; margin: 4px 0;">— OR UNLOCK VIA PASSWORD —</div>
+            <input type="password" id="fallback-password-input" placeholder="Enter Master Password / PIN" style="padding: 10px; text-align: center; width: 100%;">
+            <button class="btn" id="btn-password-unlock" style="font-size: 1rem; padding: 10px; width: 100%;">🔑 Unlock via Password</button>
+        </div>
+    </div>
+
+    <!-- OCR Modal -->
+    <div id="ocr-modal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 10px; color: var(--accent);">📷 Document / PDF & OCR Folder Selector</h3>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px;">Select document category for high-speed OCR parsing or PDF attachment:</p>
+            
+            <div class="folder-grid" id="ocr-folder-grid">
+                <div class="folder-chip active" onclick="selectOcrFolder('Passport', this)">🪪 Passports</div>
+                <div class="folder-chip" onclick="selectOcrFolder('Aadhaar Card', this)">🪪 Aadhaar Cards</div>
+                <div class="folder-chip" onclick="selectOcrFolder('Voters ID', this)">🪪 Voters IDs</div>
+                <div class="folder-chip" onclick="selectOcrFolder('Driver\'s License', this)">🚗 Driver's Licenses</div>
+                <div class="folder-chip" onclick="selectOcrFolder('Visa', this)">✈️ Visas</div>
+                <div class="folder-chip" onclick="selectOcrFolder('Credit Card', this)">💳 Credit Cards</div>
+                <div class="folder-chip" onclick="selectOcrFolder('Vehicle', this)">🚗 Vehicle Docs</div>
+                <div class="folder-chip" onclick="selectOcrFolder('Insurance', this)">🛡️ Insurances</div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                <div class="form-group">
+                    <label>Action Mode</label>
+                    <select id="ocr-mode-select">
+                        <option value="parse">Scan Image/PDF, Parse Fields & Auto-Populate</option>
+                        <option value="tag">Just Tag Document to Existing Record</option>
+                    </select>
+                </div>
+                <div class="form-group" id="ocr-record-target-group" style="display: none;">
+                    <label>Select Target Master Record for Document Tagging</label>
+                    <select id="ocr-target-record-select"></select>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-success" id="btn-confirm-ocr-action" style="flex: 1;">Pick File (Image / PDF) & Scan</button>
+                <button class="btn btn-danger" onclick="document.getElementById('ocr-modal').style.display='none'" style="flex: 1;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 10px; color: var(--accent); font-size: 1.1rem;">⚙️ Settings & Deployment Enclave Config</h3>
+            
+            <div class="card p-3 mb-2" style="background: #111827; border: 1px solid var(--border-color); padding: 10px;">
+                <h4 style="color: var(--accent); font-size: 0.85rem; margin-bottom: 4px;">Deployment Architecture Mode</h4>
+                <select id="cfg-scenario-select" class="form-select" onchange="updateSettingsScenario(this.value)">
+                    <option value="scenario1">Scenario 1: Only Mobile (Offline Mode)</option>
+                    <option value="scenario2">Scenario 2: Mobile + Laptop Backup (Local Wi-Fi)</option>
+                    <option value="scenario3">Scenario 3: Full Feature (Central Server OCR + Local Storage)</option>
+                </select>
+                <div style="font-size: 0.70rem; color: var(--text-muted); margin-top: 3px;" id="network-status-note">Probing local connection...</div>
+            </div>
+
+            <h4 style="color: #fff; margin-bottom: 6px; font-size: 0.85rem;">1. Lead Days & 10-Month Active Cycle</h4>
+            
+            <div class="settings-grid-container">
+                <div class="settings-card-box">
+                    <div class="settings-card-title">Passports</div>
+                    <div class="settings-card-subtitle">Lead Days</div>
+                    <div class="settings-card-input-row"><input type="number" id="cfg-passport" value="120"></div>
+                </div>
+                <div class="settings-card-box">
+                    <div class="settings-card-title">Driver's License</div>
+                    <div class="settings-card-subtitle">Lead Days</div>
+                    <div class="settings-card-input-row"><input type="number" id="cfg-dl" value="30"></div>
+                </div>
+                <div class="settings-card-box">
+                    <div class="settings-card-title">Visas</div>
+                    <div class="settings-card-subtitle">Lead Days</div>
+                    <div class="settings-card-input-row"><input type="number" id="cfg-visa" value="30"></div>
+                </div>
+                <div class="settings-card-box">
+                    <div class="settings-card-title">Credit Cards</div>
+                    <div class="settings-card-subtitle">Lead Days</div>
+                    <div class="settings-card-input-row"><input type="number" id="cfg-card" value="30"></div>
+                </div>
+                <div class="settings-card-box">
+                    <div class="settings-card-title">Insurances</div>
+                    <div class="settings-card-subtitle">Renewal Days</div>
+                    <div class="settings-card-input-row"><input type="number" id="cfg-health" value="15"></div>
+                </div>
+                <div class="settings-card-box">
+                    <div class="settings-card-title">Milestones</div>
+                    <div class="settings-card-subtitle">Lead Days</div>
+                    <div class="settings-card-input-row"><input type="number" id="cfg-family" value="7"></div>
+                </div>
+                <div class="settings-card-box">
+                    <div class="settings-card-title">Lease & Tax</div>
+                    <div class="settings-card-subtitle">Lease / Tax Days</div>
+                    <div style="display: flex; gap: 4px;">
+                        <input type="number" id="cfg-lease" value="60" title="Lease Lead Days">
+                        <input type="number" id="cfg-property-tax" value="7" title="Tax Lead Days">
+                    </div>
+                </div>
+                <div class="settings-card-box">
+                    <div class="settings-card-title">10-Mo Cycle</div>
+                    <div class="settings-card-subtitle">Active Months</div>
+                    <div class="month-selector-grid" id="month-selector-container"></div>
+                </div>
+            </div>
+
+            <h4 style="color: #fff; margin-bottom: 6px; font-size: 0.85rem;">2. My Family Details & Access Rules</h4>
+            <div id="members-container" style="max-height: 180px; overflow-y: auto; margin-bottom: 10px;"></div>
+            <button class="btn" type="button" onclick="addMemberRow()" style="font-size: 11px; padding: 4px 8px; margin-bottom: 10px;">+ Add Member</button>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-success" id="btn-save-settings" style="flex: 1;">Save All Settings</button>
+                <button class="btn btn-danger" onclick="document.getElementById('settings-modal').style.display='none'" style="flex: 1;">Close</button>
+            </div>
+        </div>
+    </div>
+
+<div class="container">
+    <div class="status-bar">
+        <div>
+            <span>🔒 Vault: <strong style="color: var(--success);">Unlocked</strong></span> | 
+            <span>📱 Device ID: <strong id="display-phone">Not Configured</strong></span>
+        </div>
+        <div>
+            <button class="btn btn-icon" id="btn-toggle-phone" title="Change Device ID">📱</button>
+            <button class="btn btn-icon" id="btn-open-settings" title="Settings & Access Control">⚙️</button>
+        </div>
+    </div>
+
+    <div id="phone-setup-container" class="form-panel" style="display: none; margin-bottom: 15px;">
+        <h3>Update Bound Mobile ID</h3>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <input type="tel" id="user-phone-input" placeholder="Enter Mobile Number" style="flex: 1;">
+            <button class="btn btn-success" id="btn-save-phone">Save ID</button>
+        </div>
+    </div>
+
+    <div class="utility-bar">
+        <input type="text" id="global-search" class="search-input" placeholder="Global search across all repositories..." oninput="renderAll()">
+        <button class="btn" id="btn-trigger-ocr">📁 Upload & OCR Scan (Image/PDF)</button>
+        <button class="btn btn-success" id="btn-export">💾 Export Backup</button>
+        <button class="btn" id="btn-trigger-import">📥 Import</button>
+        <input type="file" id="import-file-input" accept=".txt" class="file-input-hidden">
+    </div>
+
+    <!-- TWO-TIER NAVIGATION -->
+    <div class="nav-tier-1">
+        <button class="pill-btn active" id="pill-master" onclick="switchTab('master')">📋 Master Repository</button>
+        <button class="pill-btn" id="pill-family" onclick="switchTab('family')">🎉 Family Milestones</button>
+    </div>
+
+    <!-- TWO-LINE SMART REPOSITORY BUTTONS BAR -->
+    <div class="repo-buttons-bar">
+        <button class="repo-btn" id="repo-btn-identity" onclick="switchTab('identity')">🪪 Identity<br>Cards</button>
+        <button class="repo-btn" id="repo-btn-visas" onclick="switchTab('visas')">✈️ Country<br>Visas</button>
+        <button class="repo-btn" id="repo-btn-cards" onclick="switchTab('cards')">💳 Credit<br>Cards</button>
+        <button class="repo-btn" id="repo-btn-fleet" onclick="switchTab('fleet')">🚗 Personal<br>Vehicles</button>
+        <button class="repo-btn" id="repo-btn-health" onclick="switchTab('health')">🛡️ Vault<br>Insurances</button>
+        <button class="repo-btn" id="repo-btn-leases" onclick="switchTab('leases')">🏠 Lease<br>& Tax</button>
+        <button class="repo-btn" id="repo-btn-mortgages" onclick="switchTab('mortgages')">💰 Mortgages<br>& Loans</button>
+    </div>
+
+    <div class="form-panel" id="form-container-panel">
+        <h3 id="form-heading" style="margin-bottom: 12px; color: var(--accent);">Create Record</h3>
+        
+        <div id="form-thumbnail-preview-container" style="display: none; margin-bottom: 12px; align-items: center; gap: 10px; background: #111827; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color);">
+            <div id="form-preview-box" style="width: 45px; height: 45px; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="openDocumentViewer(appState.pendingThumbnail)"></div>
+            <div style="flex: 1; font-size: 0.8rem; color: var(--success);" id="form-preview-text">📎 Attachment Ready (Click to view)</div>
+            <button type="button" class="btn btn-danger" onclick="removeFormThumbnail()" style="padding: 4px 8px; font-size: 11px;">❌ Remove</button>
+        </div>
+
+        <form id="record-form">
+            <div class="compact-form-grid" id="unified-form-grid">
+                
+                <!-- Family Fields -->
+                <div class="form-group" id="grp-family-event-type"><label>Event Type</label>
+                    <select id="form-family-event-type">
+                        <option value="Birthday">Family Birthday</option>
+                        <option value="Anniversary">Wedding Anniversary</option>
+                        <option value="Custom">Custom Defined Milestone</option>
+                    </select>
+                </div>
+                <div class="form-group" id="grp-family-member"><label>Family Member Name</label><input type="text" id="form-family-member" placeholder="e.g. Sarah / John" oninput="validateForm()"></div>
+                <div class="form-group" id="grp-family-event-date"><label>Event Date</label><input type="date" id="form-family-event-date" onchange="autoCalculateMilestone(); validateForm();"></div>
+                
+                <!-- Insurance Fields -->
+                <div class="form-group" id="grp-insurance-asset-type"><label>Insurance Asset Type</label>
+                    <select id="form-insurance-asset-type" onchange="clearInsuranceFieldsOnTypeChange(); updateInsuranceFormLabels(); updateFormForCategory(appState.activeTab);">
+                        <option value="Health">Health Insurance</option>
+                        <option value="Vehicle">Vehicle Insurance</option>
+                        <option value="House">House Insurance</option>
+                    </select>
+                </div>
+                <div class="form-group" id="grp-insurance-holder"><label>Insurer Name</label><input type="text" id="form-insurance-holder" placeholder="Insurer Name" oninput="validateForm()"></div>
+                
+                <div class="form-group" id="grp-insurance-vehicle-select" style="display: none;">
+                    <label>Associated Vehicle</label>
+                    <div style="display: flex; gap: 4px;">
+                        <select id="form-insurance-vehicle-dropdown" onchange="validateForm()" style="flex:1;"></select>
+                        <button type="button" class="btn" id="btn-quick-add-vehicle" onclick="promptQuickAddVehicle()" title="Add New Vehicle">+ Add</button>
+                    </div>
+                </div>
+
+                <div class="form-group" id="grp-insurance-property-select" style="display: none;">
+                    <label>Associated Property</label>
+                    <div style="display: flex; gap: 4px;">
+                        <select id="form-insurance-property-dropdown" onchange="validateForm()" style="flex:1;"></select>
+                        <button type="button" class="btn" id="btn-quick-add-property" onclick="promptQuickAddProperty()" title="Add New Property">+ Add</button>
+                    </div>
+                </div>
+
+                <!-- Identity Fields -->
+                <div class="form-group" id="grp-id-type"><label>Document Type</label>
+                    <select id="form-id-type" onchange="checkIdentityTypeFields(true); validateForm();">
+                        <option value="Passport">Passport</option>
+                        <option value="Voters ID">Voters ID</option>
+                        <option value="Aadhaar Card">Aadhaar Card</option>
+                        <option value="Driver's License">Driver's License</option>
+                    </select>
+                </div>
+                <div class="form-group" id="grp-dl-country-state"><label>Country / State</label><input type="text" id="form-dl-country-state" placeholder="e.g. India, Karnataka, International" oninput="validateForm()"></div>
+
+                <!-- Credit Card Fields -->
+                <div class="form-group" id="grp-card-network"><label>Card Network Provider</label>
+                    <select id="form-card-network">
+                        <option value="Visa">VISA</option>
+                        <option value="Mastercard">MASTERCARD</option>
+                        <option value="RuPay">RUPAY</option>
+                        <option value="Diners">DINERS</option>
+                        <option value="American Express">AMERICAN EXPRESS</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="grp-issuing-country"><label>Issuing Country</label><input type="text" id="form-issuing-country" placeholder="e.g. IND, USA, UK" oninput="validateForm()"></div>
+
+                <!-- Property Lease & Tax Fields -->
+                <div class="form-group" id="grp-prop-name"><label>Property Name</label><input type="text" id="form-prop-name" placeholder="Property Name" oninput="validateForm()"></div>
+                <div class="form-group" id="grp-prop-id"><label>Property ID / Number</label><input type="text" id="form-prop-id" placeholder="Property ID" oninput="validateForm()"></div>
+                <div class="form-group" id="grp-prop-country"><label>Country</label><input type="text" id="form-prop-country" placeholder="Country" oninput="validateForm()"></div>
+                <div class="form-group" id="grp-prop-city"><label>City / Town / Council</label><input type="text" id="form-prop-city" placeholder="City / Council" oninput="validateForm()"></div>
+
+                <div class="form-group" id="grp-name"><label id="label-form-name">Record Name / Title</label><input type="text" id="form-name" placeholder="Enter title" oninput="validateForm()"></div>
+                <div class="form-group" id="grp-number"><label id="label-number">Identifier / Number</label><input type="text" id="form-number" placeholder="Enter number" oninput="validateForm()"></div>
+
+                <!-- Vehicle Fields -->
+                <div class="form-group" id="grp-reg-card"><label>Registration Card Number</label><input type="text" id="form-reg-card" placeholder="Reg Card Number" oninput="validateForm()"></div>
+                <div class="form-group" id="grp-vin"><label>VIN (17-char)</label><input type="text" id="form-vin" placeholder="VIN" oninput="validateForm()"></div>
+                <div class="form-group" id="grp-mileage"><label>Odometer Mileage</label><input type="number" id="form-mileage" placeholder="0"></div>
+                <div class="form-group" id="grp-purchase-cost"><label>Purchase Cost ($)</label><input type="number" id="form-purchase-cost" placeholder="0.00"></div>
+
+                <div class="form-group" id="grp-vehicle-insurance-link" style="display: none;">
+                    <label>Associated Vehicle Insurance</label>
+                    <select id="form-vehicle-insurance-dropdown" onchange="handleVehicleTabInsuranceChange(); validateForm();"></select>
+                </div>
+
+                <div class="form-row-break" id="break-lease-row2" style="display: none;"></div>
+
+                <!-- Property Tax Fields -->
+                <div class="form-group" id="grp-tax-amount"><label>Property Tax Amount</label><input type="number" id="form-tax-amount" placeholder="0.00"></div>
+                <div class="form-group" id="grp-tax-periodicity"><label>Tax Instalment Periodicity</label>
+                    <select id="form-tax-periodicity">
+                        <option value="Annual">Annual</option>
+                        <option value="Semi-Annual">Semi-Annual</option>
+                        <option value="Monthly (12 Months)">Monthly (12 Months)</option>
+                        <option value="Monthly (10 Months)">Monthly (10 Months)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="grp-tax-due-date">
+                    <label>Tax Due Date</label>
+                    <div class="inline-action-group">
+                        <input type="date" id="form-tax-due-date" onchange="autoCalculateMilestone(); validateForm();">
+                        <button type="button" class="btn" onclick="advanceTaxDueDate()" title="Shift to Next Due">Next<br>Due</button>
+                    </div>
+                </div>
+                <div class="form-group" id="grp-tax-reminder-days">
+                    <label>Tax Due Reminder (Days)</label>
+                    <input type="number" id="form-tax-reminder-days" value="0" placeholder="0" oninput="autoCalculateMilestone(); validateForm();">
+                </div>
+
+                <div class="form-row-break" id="break-lease-row3" style="display: none;"></div>
+
+                <div class="form-group" id="grp-tenant-name"><label>Tenant Name</label><input type="text" id="form-tenant-name" placeholder="Tenant Name"></div>
+                <div class="form-group" id="grp-rent-amount"><label>Rent Denomination</label><input type="text" id="form-rent-amount" placeholder="e.g. ₹50k/mo or 50000" oninput="validateForm()"></div>
+                <div class="form-group" id="grp-lease-increase-pct"><label>Lease Increase %age</label><input type="number" step="0.01" id="form-lease-increase-pct" placeholder="e.g. 7.5" oninput="validateForm()"></div>
+                
+                <!-- Mortgages & Loans Fields -->
+                <div class="form-group" id="grp-mortgage-type"><label>Mortgage / Loan Type</label>
+                    <select id="form-mortgage-type" onchange="updateMortgageFormFields(); validateForm();">
+                        <option value="House Mortgage">House Mortgage</option>
+                        <option value="Vehicle Mortgage">Vehicle Mortgage</option>
+                        <option value="Personal Loan">Personal Loan</option>
+                        <option value="Business Loan">Business Loan</option>
+                    </select>
+                </div>
+                <div class="form-group" id="grp-mortgage-link-prop"><label>Associated Property</label><select id="form-mortgage-prop-dropdown" onchange="validateForm()"></select></div>
+                <div class="form-group" id="grp-mortgage-link-veh"><label>Associated Vehicle</label><select id="form-mortgage-veh-dropdown" onchange="validateForm()"></select></div>
+                <div class="form-group" id="grp-mortgage-link-collateral"><label>Associated Collateral (Property)</label><select id="form-mortgage-collateral-dropdown" onchange="validateForm()"></select></div>
+                
+                <div class="form-group" id="grp-lender-name"><label>Lender Name</label><input type="text" id="form-lender-name" placeholder="Bank / Lender Name" oninput="validateForm()"></div>
+                <div class="form-group" id="grp-loan-account"><label>Loan / Account Number</label><input type="text" id="form-loan-account" placeholder="Account Number" oninput="validateForm()"></div>
+                <div class="form-group" id="grp-loan-principal"><label>Loan Principal</label><input type="number" id="form-loan-principal" placeholder="0.00" oninput="validateForm()"></div>
+                <div class="form-group" id="grp-loan-term"><label>Loan Term (Years)</label><input type="number" id="form-loan-term" placeholder="e.g. 15 or 30" oninput="validateForm()"></div>
+                <div class="form-group" id="grp-loan-rate"><label>Interest Rate (%)</label><input type="number" step="0.01" id="form-loan-rate" placeholder="e.g. 6.5" oninput="validateForm()"></div>
+                
+                <div class="form-group" id="grp-payment-periodicity"><label>Payment Periodicity</label>
+                    <select id="form-payment-periodicity" onchange="validateForm()">
+                        <option value="Monthly">Monthly</option>
+                        <option value="Biweekly">Biweekly (Every 2 weeks)</option>
+                        <option value="Accelerated Biweekly">Accelerated Biweekly (Half-monthly split)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="grp-payment-due-date">
+                    <label>Payment Due Date</label>
+                    <div class="inline-action-group">
+                        <input type="date" id="form-payment-due-date" onchange="validateForm()">
+                        <button type="button" class="btn" onclick="advanceMortgageDueDate()" title="Shift to Next Due">Next<br>Due</button>
+                    </div>
+                </div>
+
+                <div class="form-group" id="grp-issue-date"><label>Issue Date</label><input type="date" id="form-issue-date"></div>
+                <div class="form-group" id="grp-premium"><label>Premium Amount</label><input type="number" id="grp-premium" placeholder="0.00"></div>
+                
+                <div class="form-group" id="grp-expiry-date">
+                    <label id="label-expiry">Expiration Date</label>
+                    <div class="inline-action-group">
+                        <input type="date" id="form-date" onchange="autoCalculateMilestone(); validateForm();">
+                        <button type="button" class="btn" id="btn-advance-lease" onclick="advanceLeaseExpiry()" style="display: none;" title="Advance Lease Expiry">Next<br>Due</button>
+                    </div>
+                </div>
+
+                <div class="form-group" id="grp-milestone-date">
+                    <label id="label-milestone-target">Renewal Date Reminder</label>
+                    <input type="date" id="form-milestone-date" readonly style="background: #090d16; color: var(--warning);">
+                </div>
+
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 5px;">
+                <button type="submit" class="btn btn-success" id="btn-submit-action" disabled style="flex: 1;">Save Record</button>
+                <button type="button" class="btn btn-danger" id="btn-cancel-edit" onclick="cancelEditMode()" style="display: none; flex: 1;">Cancel Edit</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Repository Grid Views -->
+    <div class="drawer-section active-drawer" id="section-master">
+        <div class="drawer-title">📋 Master Repository & Expiry Overview</div>
+        <div class="grid" id="grid-master"></div>
+    </div>
+    <div class="drawer-section" id="section-family">
+        <div class="drawer-title">🎉 Family Birthdays & Anniversaries</div>
+        <div class="grid" id="grid-family"></div>
+    </div>
+    <div class="drawer-section" id="section-identity">
+        <div class="drawer-title">🪪 Identity Cards Repository</div>
+        <div class="grid" id="grid-identity"></div>
+    </div>
+    <div class="drawer-section" id="section-visas">
+        <div class="drawer-title">✈️ Country Visas Repository</div>
+        <div class="grid" id="grid-visas"></div>
+    </div>
+    <div class="drawer-section" id="section-cards">
+        <div class="drawer-title">💳 Credit Cards Repository</div>
+        <div class="grid" id="grid-cards"></div>
+    </div>
+    <div class="drawer-section" id="section-fleet">
+        <div class="drawer-title">🚗 Personal Vehicles Repository</div>
+        <div class="grid" id="grid-fleet"></div>
+    </div>
+    <div class="drawer-section" id="section-health">
+        <div class="drawer-title">🛡️ Insurances Repository</div>
+        <div class="grid" id="grid-health"></div>
+    </div>
+    <div class="drawer-section" id="section-leases">
+        <div class="drawer-title">🏠 Property Lease and Tax Repository</div>
+        <div class="grid" id="grid-leases"></div>
+    </div>
+    <div class="drawer-section" id="section-mortgages">
+        <div class="drawer-title">💰 Mortgages & Loans Repository</div>
+        <div class="grid" id="grid-mortgages"></div>
+    </div>
+</div>
+
+<input type="file" id="camera-file-input" accept="image/*,.pdf" class="file-input-hidden">
+
+<script>
+    var appState = {
+        userPhone: localStorage.getItem('privault_user_phone') || '',
+        records: [],
+        encryptionKey: null,
+        activeTab: 'master',
+        editingRecordId: null,
+        originalRecordData: null,
+        pendingThumbnail: null,
+        selectedOcrFolder: 'Passport',
+        settings: { passport: 120, dl: 30, visa: 30, card: 30, health: 15, lease: 60, propertyTax: 7, family: 7, activeMonths: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11], members: [] }
+    };
+
+    try {
+        var savedSettings = JSON.parse(localStorage.getItem('privault_settings'));
+        if (savedSettings && typeof savedSettings === 'object') {
+            appState.settings = Object.assign(appState.settings, savedSettings);
+            if (!Array.isArray(appState.settings.activeMonths)) appState.settings.activeMonths = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+            if (!Array.isArray(appState.settings.members)) appState.settings.members = [];
+        }
+    } catch(err) {
+        console.warn("Using default settings due to corrupted local cache.");
+    }
+
+    const ALL_MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const ALL_CATEGORIES = [
+        { id: 'identity', name: 'Identity Cards' },
+        { id: 'visas', name: 'Country Visas' },
+        { id: 'cards', name: 'Credit Cards' },
+        { id: 'fleet', name: 'Personal Vehicles' },
+        { id: 'health', name: 'Insurances' },
+        { id: 'leases', name: 'Property Lease & Tax' },
+        { id: 'mortgages', name: 'Mortgages & Loans' },
+        { id: 'family', name: 'Family Milestones' }
+    ];
+
+    document.addEventListener("DOMContentLoaded", function() {
+        setupEventListeners();
+        probeLocalServerConnection();
+    });
+
+    window.onload = function() {
+        initApp();
+    };
+
+    async function probeLocalServerConnection() {
+        var mode = (window.PRIVAUULT_CONFIG && window.PRIVAUULT_CONFIG.PROCESSING_MODE) || 'scenario3';
+        var note = document.getElementById('network-status-note');
+        if (!note) return;
+
+        if (mode === 'scenario1') {
+            note.innerText = "Scenario 1: Offline mobile mode active.";
+            return;
+        }
+
+        var localUrl = (window.PRIVAUULT_CONFIG && window.PRIVAUULT_CONFIG.API_BASE_URL) || 'http://127.0.0.1:8000';
+        try {
+            var controller = new AbortController();
+            var timeoutId = setTimeout(function() { controller.abort(); }, 1500);
+            var res = await fetch(localUrl + '/', { method: 'GET', signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (res.ok) {
+                note.innerHTML = '<strong style="color:var(--success);">Connected to Local Wi-Fi (Fast OCR + Auto Backup)</strong>';
+                autoPushLocalWifiBackup();
+            } else {
+                note.innerHTML = '<strong style="color:var(--warning);">Local Wi-Fi server unreachable. Using fallback tunnel.</strong>';
+            }
+        } catch (e) {
+            note.innerHTML = '<strong style="color:var(--warning);">Local Wi-Fi server unreachable. Using fallback tunnel.</strong>';
+        }
+    }
+
+    async function autoPushLocalWifiBackup() {
+        if (!appState.encryptionKey || !appState.userPhone) return;
+        var encryptedDb = localStorage.getItem('privault_secure_db');
+        if (!encryptedDb) return;
+        var localUrl = (window.PRIVAUULT_CONFIG && window.PRIVAUULT_CONFIG.API_BASE_URL) || 'http://127.0.0.1:8000';
+        try {
+            await fetch(localUrl + '/api/sync/push', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    device_id: appState.userPhone,
+                    phone: appState.userPhone,
+                    encrypted_db: encryptedDb
+                })
+            });
+        } catch(err) {
+            console.log("Local Wi-Fi background backup push skipped:", err);
+        }
+    }
+
+    function initApp() {
+        if (appState.userPhone) {
+            document.getElementById('display-phone').innerText = appState.userPhone;
+        } else {
+            document.getElementById('display-phone').innerText = 'Unbound';
+            document.getElementById('phone-setup-container').style.display = 'block';
+        }
+        loadSettingsToModal();
+        updateFormForCategory('master');
+    }
+
+    function setupEventListeners() {
+        var bioBtn = document.getElementById('btn-biometric-unlock');
+        var pwdBtn = document.getElementById('btn-password-unlock');
+        
+        if (bioBtn) bioBtn.onclick = handleBiometricUnlock;
+        if (pwdBtn) pwdBtn.onclick = handlePasswordUnlock;
+
+        var savePhoneBtn = document.getElementById('btn-save-phone');
+        if (savePhoneBtn) savePhoneBtn.onclick = handleSavePhone;
+
+        var openSettingsBtn = document.getElementById('btn-open-settings');
+        if (openSettingsBtn) openSettingsBtn.onclick = function() { loadSettingsToModal(); document.getElementById('settings-modal').style.display = 'flex'; };
+
+        var saveSettingsBtn = document.getElementById('btn-save-settings');
+        if (saveSettingsBtn) saveSettingsBtn.onclick = saveSettings;
+
+        var togglePhoneBtn = document.getElementById('btn-toggle-phone');
+        if (togglePhoneBtn) togglePhoneBtn.onclick = function() {
+            var box = document.getElementById('phone-setup-container');
+            box.style.display = box.style.display === 'none' ? 'block' : 'none';
+        };
+
+        var triggerOcrBtn = document.getElementById('btn-trigger-ocr');
+        if (triggerOcrBtn) triggerOcrBtn.onclick = openOcrModal;
+        
+        var cameraInput = document.getElementById('camera-file-input');
+        if (cameraInput) cameraInput.onchange = handleCameraOCRFileSelect;
+
+        var confirmOcrBtn = document.getElementById('btn-confirm-ocr-action');
+        if (confirmOcrBtn) confirmOcrBtn.onclick = triggerFilePicker;
+
+        var ocrModeSel = document.getElementById('ocr-mode-select');
+        if (ocrModeSel) ocrModeSel.onchange = function() {
+            var targetGroup = document.getElementById('ocr-record-target-group');
+            targetGroup.style.display = (this.value === 'tag') ? 'block' : 'none';
+        };
+
+        var exportBtn = document.getElementById('btn-export');
+        if (exportBtn) exportBtn.onclick = handleExport;
+
+        var triggerImportBtn = document.getElementById('btn-trigger-import');
+        if (triggerImportBtn) triggerImportBtn.onclick = function() { document.getElementById('import-file-input').click(); };
+        
+        var importInput = document.getElementById('import-file-input');
+        if (importInput) importInput.onchange = handleImport;
+
+        var recordForm = document.getElementById('record-form');
+        if (recordForm) recordForm.onsubmit = handleAddOrUpdateRecord;
+    }
+
+    function openOcrModal() {
+        var targetSelect = document.getElementById('ocr-target-record-select');
+        targetSelect.innerHTML = '';
+        appState.records.forEach(function(r) {
+            var name = r.name || r.familyMember || r.propName || r.lenderName || 'Record ' + r.id;
+            targetSelect.innerHTML += '<option value="' + r.id + '">[' + r.category.toUpperCase() + '] ' + name + '</option>';
+        });
+        document.getElementById('ocr-modal').style.display = 'flex';
+    }
+
+    function selectOcrFolder(folderName, el) {
+        appState.selectedOcrFolder = folderName;
+        var chips = document.querySelectorAll('.folder-chip');
+        chips.forEach(function(c) { c.classList.remove('active'); });
+        el.classList.add('active');
+    }
+
+    function triggerFilePicker() {
+        document.getElementById('ocr-modal').style.display = 'none';
+        document.getElementById('camera-file-input').click();
+    }
+
+    function updateFormThumbnailPreview() {
+        var container = document.getElementById('form-thumbnail-preview-container');
+        var box = document.getElementById('form-preview-box');
+        var textLbl = document.getElementById('form-preview-text');
+        if (!container || !box) return;
+
+        if (appState.pendingThumbnail) {
+            var isPdf = appState.pendingThumbnail.startsWith('data:application/pdf');
+            if (isPdf) {
+                box.innerHTML = '<span style="font-size: 24px;">📄</span>';
+                textLbl.innerText = '📎 PDF Document Attached (Click to view)';
+            } else {
+                box.innerHTML = '<img src="' + appState.pendingThumbnail + '" style="width: 45px; height: 45px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color);" />';
+                textLbl.innerText = '📎 WebP Compressed Image (Click to preview)';
+            }
+            container.style.display = 'flex';
+        } else {
+            box.innerHTML = '';
+            container.style.display = 'none';
+        }
+    }
+
+    function removeFormThumbnail() {
+        appState.pendingThumbnail = null;
+        updateFormThumbnailPreview();
+        validateForm();
+    }
+
+    async function detachRecordImage(recordId, event) {
+        event.stopPropagation();
+        if (!confirm('Are you sure you want to remove the file attachment from this record?')) return;
+
+        var rec = appState.records.find(function(r){ return r.id === recordId; });
+        if (rec) {
+            rec.thumbnail = null;
+            await saveState();
+            renderAll();
+            alert('File attachment removed successfully.');
+        }
+    }
+
+    function loadSettingsToModal() {
+        document.getElementById('cfg-scenario-select').value = (window.PRIVAUULT_CONFIG && window.PRIVAUULT_CONFIG.PROCESSING_MODE) || 'scenario3';
+        document.getElementById('cfg-passport').value = appState.settings.passport || 120;
+        document.getElementById('cfg-dl').value = appState.settings.dl || 30;
+        document.getElementById('cfg-visa').value = appState.settings.visa || 30;
+        document.getElementById('cfg-card').value = appState.settings.card || 30;
+        document.getElementById('cfg-health').value = appState.settings.health || 15;
+        document.getElementById('cfg-family').value = appState.settings.family || 7;
+        document.getElementById('cfg-lease').value = appState.settings.lease || 60;
+        document.getElementById('cfg-property-tax').value = appState.settings.propertyTax || 7;
+        
+        renderMonthSelectors();
+        renderMemberRows();
+        probeLocalServerConnection();
+    }
+
+    function updateSettingsScenario(val) {
+        window.PRIVAUULT_CONFIG.PROCESSING_MODE = val;
+        localStorage.setItem('privault_mode', val);
+        probeLocalServerConnection();
+    }
+
+    function renderMonthSelectors() {
+        var grid = document.getElementById('month-selector-container');
+        if (!grid) return;
+        grid.innerHTML = '';
+        if (!Array.isArray(appState.settings.activeMonths)) appState.settings.activeMonths = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+        ALL_MONTH_NAMES.forEach(function(mName, mIdx) {
+            var isSel = appState.settings.activeMonths.includes(mIdx);
+            grid.innerHTML += '<div class="month-badge ' + (isSel ? 'selected' : '') + '" onclick="toggleMonth(' + mIdx + ')">' + mName + '</div>';
+        });
+    }
+
+    function toggleMonth(mIdx) {
+        var active = appState.settings.activeMonths;
+        var pos = active.indexOf(mIdx);
+        if (pos > -1) {
+            if (active.length > 1) active.splice(pos, 1);
+        } else {
+            active.push(mIdx);
+            active.sort(function(a, b){ return a - b; });
+        }
+        renderMonthSelectors();
+    }
+
+    function renderMemberRows() {
+        var container = document.getElementById('members-container');
+        if (!container) return;
+        container.innerHTML = '';
+        if (!Array.isArray(appState.settings.members)) appState.settings.members = [];
+        
+        appState.settings.members.forEach(function(m, idx) {
+            var scope = m.scope || 'All';
+            var categoriesSelected = Array.isArray(m.categories) ? m.categories : [];
+            var recordsSelected = Array.isArray(m.records) ? m.records : [];
+
+            var scopeSelectionUI = '';
+            if (scope === 'Category') {
+                scopeSelectionUI = '<div style="margin-top:4px;"><label style="font-size:10px; color:var(--text-muted);">Select Allowed Categories:</label><div class="checkbox-group-container">';
+                ALL_CATEGORIES.forEach(function(cat) {
+                    var isChecked = categoriesSelected.includes(cat.id);
+                    scopeSelectionUI += '<label class="checkbox-chip"><input type="checkbox" ' + (isChecked ? 'checked' : '') + ' value="' + cat.id + '" class="cat-chk-' + idx + '"> ' + cat.name + '</label>';
+                });
+                scopeSelectionUI += '</div></div>';
+            } else if (scope === 'Record') {
+                scopeSelectionUI = '<div style="margin-top:4px;"><label style="font-size:10px; color:var(--text-muted);">Select Allowed Specific Records:</label><div class="checkbox-group-container">';
+                if (appState.records.length === 0) {
+                    scopeSelectionUI += '<span style="font-size:11px; color:var(--text-muted);">No records created yet.</span>';
+                }
+                appState.records.forEach(function(r) {
+                    var rName = r.name || r.familyMember || r.propName || r.lenderName || ('Record ' + r.id);
+                    var isChecked = recordsSelected.includes(r.id);
+                    scopeSelectionUI += '<label class="checkbox-chip"><input type="checkbox" ' + (isChecked ? 'checked' : '') + ' value="' + r.id + '" class="rec-chk-' + idx + '"> [' + r.category.toUpperCase() + '] ' + rName + '</label>';
+                });
+                scopeSelectionUI += '</div></div>';
+            }
+
+            container.innerHTML += '<div class="member-row" id="member-row-' + idx + '">' +
+                '<div style="display:flex; gap:6px; width:100%; align-items:center;">' +
+                    '<input type="text" placeholder="Member Name *" value="' + safeStr(m.name) + '" id="m-name-' + idx + '" style="flex:1;" required>' +
+                    '<input type="tel" placeholder="Mobile Number *" value="' + safeStr(m.phone) + '" id="m-phone-' + idx + '" style="flex:1;" required>' +
+                    '<select id="m-scope-' + idx + '" onchange="handleScopeChange(' + idx + ')" style="flex:1;">' +
+                        '<option value="All" ' + (scope==='All'?'selected':'') + '>All Records</option>' +
+                        '<option value="Category" ' + (scope==='Category'?'selected':'') + '>Specific Categories</option>' +
+                        '<option value="Record" ' + (scope==='Record'?'selected':'') + '>Specific Records</option>' +
+                        '<option value="Reminders" ' + (scope==='Reminders'?'selected':'') + '>Reminders Only</option>' +
+                    '</select>' +
+                    '<select id="m-perm-' + idx + '" style="flex:1;" ' + (scope==='Reminders' ? 'disabled style="background:#090d16; color:var(--warning);"' : '') + '>' +
+                        '<option value="Write" ' + (scope==='Reminders' || m.perm==='Write'?'selected':'') + '>Write / Edit</option>' +
+                        (scope!=='Reminders' ? '<option value="Read" ' + (m.perm==='Read'?'selected':'') + '>Read Only</option>' : '') +
+                    '</select>' +
+                    '<button class="btn btn-danger" type="button" onclick="removeMemberRow(' + idx + ')" style="padding:4px 8px; width:32px;">✕</button>' +
+                '</div>' +
+                '<div style="width:100%;">' + scopeSelectionUI + '</div>' +
+            '</div>';
+        });
+    }
+
+    function handleScopeChange(idx) {
+        var scopeSel = document.getElementById('m-scope-' + idx);
+        var tempMembers = [];
+        var rows = document.querySelectorAll('.member-row');
+        rows.forEach(function(_, i) {
+            var name = document.getElementById('m-name-' + i).value.trim();
+            var phone = document.getElementById('m-phone-' + i).value.trim();
+            var scope = document.getElementById('m-scope-' + i).value;
+            var perm = document.getElementById('m-perm-' + i).value;
+            tempMembers.push({name: name, phone: phone, scope: scope, perm: perm, categories: appState.settings.members[i]?.categories || [], records: appState.settings.members[i]?.records || []});
+        });
+        
+        appState.settings.members = tempMembers;
+        appState.settings.members[idx].scope = scopeSel.value;
+        if(scopeSel.value === 'Reminders') appState.settings.members[idx].perm = 'Write';
+        renderMemberRows();
+    }
+
+    function addMemberRow() {
+        if (!Array.isArray(appState.settings.members)) appState.settings.members = [];
+        appState.settings.members.push({name: '', phone: '', scope: 'All', perm: 'Read', categories: [], records: []});
+        renderMemberRows();
+    }
+
+    function removeMemberRow(idx) {
+        appState.settings.members.splice(idx, 1);
+        renderMemberRows();
+    }
+
+    function saveSettings() {
+        appState.settings.passport = parseInt(document.getElementById('cfg-passport').value) || 120;
+        appState.settings.dl = parseInt(document.getElementById('cfg-dl').value) || 30;
+        appState.settings.visa = parseInt(document.getElementById('cfg-visa').value) || 30;
+        appState.settings.card = parseInt(document.getElementById('cfg-card').value) || 30;
+        appState.settings.health = parseInt(document.getElementById('cfg-health').value) || 15;
+        appState.settings.family = parseInt(document.getElementById('cfg-family').value) || 7;
+        appState.settings.lease = parseInt(document.getElementById('cfg-lease').value) || 60;
+        appState.settings.propertyTax = parseInt(document.getElementById('cfg-property-tax').value) || 7;
+
+        var members = [];
+        var rows = document.querySelectorAll('.member-row');
+        var validationFailed = false;
+
+        rows.forEach(function(_, idx) {
+            var name = document.getElementById('m-name-' + idx).value.trim();
+            var phone = document.getElementById('m-phone-' + idx).value.trim();
+            var scope = document.getElementById('m-scope-' + idx).value;
+            var perm = document.getElementById('m-perm-' + idx).value;
+
+            if (!name || !phone) {
+                validationFailed = true;
+                return;
+            }
+
+            var selectedCategories = [];
+            if (scope === 'Category') {
+                var catCheckboxes = document.querySelectorAll('.cat-chk-' + idx + ':checked');
+                catCheckboxes.forEach(function(chk) { selectedCategories.push(chk.value); });
+            }
+
+            var selectedRecords = [];
+            if (scope === 'Record') {
+                var recCheckboxes = document.querySelectorAll('.rec-chk-' + idx + ':checked');
+                recCheckboxes.forEach(function(chk) { selectedRecords.push(chk.value); });
+            }
+
+            members.push({
+                name: name,
+                phone: phone,
+                scope: scope,
+                perm: perm,
+                categories: selectedCategories,
+                records: selectedRecords
+            });
+        });
+
+        if (validationFailed) {
+            alert('Validation Error: Family Member Name and Mobile Number are mandatory for every saved access rule row.');
+            return;
+        }
+
+        appState.settings.members = members;
+        localStorage.setItem('privault_settings', JSON.stringify(appState.settings));
+        document.getElementById('settings-modal').style.display = 'none';
+        renderAll();
+        alert('Settings and access control rules saved successfully.');
+    }
+
+    function switchTab(category) {
+        var currentEditingRec = appState.records.find(function(r){ return r.id === appState.editingRecordId; });
+        if (!currentEditingRec || currentEditingRec.category !== category) {
+            cancelEditMode();
+        }
+        
+        appState.activeTab = category;
+        
+        document.getElementById('pill-master').classList.remove('active');
+        document.getElementById('pill-family').classList.remove('active');
+        if (category === 'master') document.getElementById('pill-master').classList.add('active');
+        else if (category === 'family') document.getElementById('pill-family').classList.add('active');
+
+        var allRepoBtns = document.querySelectorAll('.repo-btn');
+        allRepoBtns.forEach(function(btn) { btn.classList.remove('active'); });
+        var targetRepoBtn = document.getElementById('repo-btn-' + category);
+        if (targetRepoBtn) targetRepoBtn.classList.add('active');
+
+        var sections = document.querySelectorAll('.drawer-section');
+        sections.forEach(function(sec) { sec.classList.remove('active-drawer'); });
+        var targetSec = document.getElementById('section-' + category);
+        if (targetSec) targetSec.classList.add('active-drawer');
+
+        updateFormForCategory(category);
+        renderAll();
+    }
+
+    function updateFormForCategory(category) {
+        var panel = document.getElementById('form-container-panel');
+        if (category === 'master') {
+            panel.style.display = 'none';
+            return;
+        }
+        panel.style.display = 'block';
+
+        function show(id) { var el = document.getElementById(id); if(el) el.style.display = 'flex'; }
+        function hide(id) { var el = document.getElementById(id); if(el) el.style.display = 'none'; }
+        function showBlock(id) { var el = document.getElementById(id); if(el) el.style.display = 'block'; }
+
+        var allGroups = [
+            'grp-family-event-type', 'grp-family-member', 'grp-family-event-date',
+            'grp-insurance-asset-type', 'grp-insurance-holder', 'grp-insurance-vehicle-select', 'grp-insurance-property-select',
+            'grp-id-type', 'grp-dl-country-state', 'grp-card-network', 'grp-issuing-country',
+            'grp-prop-name', 'grp-prop-id', 'grp-prop-country', 'grp-prop-city',
+            'grp-name', 'grp-number', 'grp-reg-card', 'grp-vin', 'grp-mileage', 'grp-purchase-cost',
+            'grp-vehicle-insurance-link', 'grp-tax-amount', 'grp-tax-periodicity', 'grp-tax-due-date', 'grp-tax-reminder-days',
+            'grp-tenant-name', 'grp-rent-amount', 'grp-lease-increase-pct',
+            'grp-mortgage-type', 'grp-mortgage-link-prop', 'grp-mortgage-link-veh', 'grp-mortgage-link-collateral',
+            'grp-lender-name', 'grp-loan-account', 'grp-loan-principal', 'grp-loan-term', 'grp-loan-rate',
+            'grp-payment-periodicity', 'grp-payment-due-date', 'grp-issue-date', 'grp-premium', 'grp-expiry-date', 'grp-milestone-date'
+        ];
+        allGroups.forEach(function(g){ hide(g); });
+        hide('break-lease-row2');
+        hide('break-lease-row3');
+
+        if (category === 'family') {
+            show('grp-family-event-type');
+            show('grp-family-member');
+            show('grp-family-event-date');
+            show('grp-milestone-date');
+            var lbl = document.getElementById('label-milestone-target');
+            if(lbl) lbl.innerText = "Renewal Date Reminder";
+        } else if (category === 'identity') {
+            show('grp-id-type');
+            show('grp-name');
+            show('grp-number');
+            var idTypeElem = document.getElementById('form-id-type');
+            var idType = idTypeElem ? idTypeElem.value : 'Passport';
+            if (idType === "Driver's License") {
+                show('grp-dl-country-state');
+            }
+            if (idType === 'Passport') {
+                show('grp-issuing-country');
+                show('grp-issue-date');
+            }
+            if (idType === 'Voters ID' || idType === 'Aadhaar Card') {
+                show('grp-issue-date');
+            }
+            if (idType !== 'Aadhaar Card' && idType !== 'Voters ID') {
+                show('grp-expiry-date');
+                show('grp-milestone-date');
+            }
+            if(document.getElementById('label-form-name')) document.getElementById('label-form-name').innerText = "Holder Name";
+            if(document.getElementById('label-expiry')) document.getElementById('label-expiry').innerText = "Expiration Date";
+        } else if (category === 'visas') {
+            show('grp-name');
+            show('grp-number');
+            show('grp-issue-date');
+            show('grp-expiry-date');
+            show('grp-milestone-date');
+            if(document.getElementById('label-form-name')) document.getElementById('label-form-name').innerText = "Visa Country";
+            if(document.getElementById('label-number')) document.getElementById('label-number').innerText = "Visa Number";
+            if(document.getElementById('label-expiry')) document.getElementById('label-expiry').innerText = "Visa Expiry Date";
+        } else if (category === 'cards') {
+            show('grp-card-network');
+            show('grp-name');
+            show('grp-number');
+            show('grp-expiry-date');
+            show('grp-milestone-date');
+            if(document.getElementById('label-form-name')) document.getElementById('label-form-name').innerText = "Issuer Name";
+            if(document.getElementById('label-number')) document.getElementById('label-number').innerText = "Card Number (Last 4)";
+            if(document.getElementById('label-expiry')) document.getElementById('label-expiry').innerText = "Card Expiry Date";
+        } else if (category === 'fleet') {
+            show('grp-name');
+            show('grp-number');
+            show('grp-reg-card');
+            show('grp-vin');
+            show('grp-mileage');
+            show('grp-purchase-cost');
+            show('grp-vehicle-insurance-link');
+            show('grp-expiry-date');
+            show('grp-milestone-date');
+            populateVehicleInsuranceDropdownForFleet();
+            if(document.getElementById('label-form-name')) document.getElementById('label-form-name').innerText = "Vehicle Name";
+            if(document.getElementById('label-number')) document.getElementById('label-number').innerText = "License Plate Number";
+            if(document.getElementById('label-expiry')) document.getElementById('label-expiry').innerText = "Insurance Expiry Date";
+        } else if (category === 'health') {
+            show('grp-insurance-asset-type');
+            show('grp-insurance-holder');
+            var insTypeElem = document.getElementById('form-insurance-asset-type');
+            var insType = insTypeElem ? insTypeElem.value : 'Health';
+            if (insType === 'Vehicle') {
+                show('grp-insurance-vehicle-select');
+                populateVehicleDropdownForInsurance();
+            } else if (insType === 'House') {
+                show('grp-insurance-property-select');
+                populatePropertyDropdownForHouseInsurance();
+            }
+            show('grp-number');
+            show('grp-premium');
+            show('grp-expiry-date');
+            show('grp-milestone-date');
+            if(document.getElementById('label-number')) document.getElementById('label-number').innerText = insType === 'Vehicle' ? "Vehicle Policy Number" : (insType === 'House' ? "Home Policy Number" : "Policy Number");
+            if(document.getElementById('label-expiry')) document.getElementById('label-expiry').innerText = "Policy Expiry Date";
+        } else if (category === 'leases') {
+            show('grp-prop-name');
+            show('grp-prop-id');
+            show('grp-prop-country');
+            show('grp-prop-city');
+            showBlock('break-lease-row2');
+            show('grp-tax-amount');
+            show('grp-tax-periodicity');
+            show('grp-tax-due-date');
+            show('grp-tax-reminder-days');
+            showBlock('break-lease-row3');
+            show('grp-tenant-name');
+            show('grp-rent-amount');
+            show('grp-lease-increase-pct');
+            show('grp-expiry-date');
+            show('grp-milestone-date');
+            if(document.getElementById('label-expiry')) document.getElementById('label-expiry').innerText = "Lease Expiry Date";
+        } else if (category === 'mortgages') {
+            show('grp-mortgage-type');
+            updateMortgageFormFields();
+            show('grp-lender-name');
+            show('grp-loan-account');
+            show('grp-loan-principal');
+            show('grp-loan-term');
+            show('grp-loan-rate');
+            show('grp-payment-periodicity');
+            show('grp-payment-due-date');
+        }
+
+        if (!appState.editingRecordId) {
+            document.getElementById('form-heading').innerText = "Create New Record";
+            document.getElementById('btn-submit-action').innerText = "Save Record";
+            document.getElementById('btn-cancel-edit').style.display = 'none';
+        }
+        validateForm();
+    }
+
+    // BUGFIX: Clear insurance fields immediately when switching insurance asset type
+    function clearInsuranceFieldsOnTypeChange() {
+        if (appState.editingRecordId) return; // Do not wipe if editing an existing record
+        document.getElementById('form-insurance-holder').value = '';
+        document.getElementById('form-number').value = '';
+        document.getElementById('form-premium').value = '';
+        document.getElementById('form-date').value = '';
+        document.getElementById('form-milestone-date').value = '';
+        var vDrop = document.getElementById('form-insurance-vehicle-dropdown');
+        if(vDrop) vDrop.value = '';
+        var pDrop = document.getElementById('form-insurance-property-dropdown');
+        if(pDrop) pDrop.value = '';
+    }
+
+    function populateVehicleDropdownForInsurance() {
+        var select = document.getElementById('form-insurance-vehicle-dropdown');
+        if (!select) return;
+        var currentVal = select.value;
+        select.innerHTML = '<option value="">-- Select Vehicle --</option>';
+        var vehicles = appState.records.filter(function(r) { return r.category === 'fleet'; });
+        vehicles.forEach(function(v) {
+            select.innerHTML += '<option value="' + v.id + '">' + v.name + ' (Plate: ' + v.number + ')</option>';
+        });
+        select.value = currentVal;
+    }
+
+    function populatePropertyDropdownForHouseInsurance() {
+        var select = document.getElementById('form-insurance-property-dropdown');
+        if (!select) return;
+        var currentVal = select.value;
+        select.innerHTML = '<option value="">-- Select Property --</option>';
+        var properties = appState.records.filter(function(r) { return r.category === 'leases'; });
+        properties.forEach(function(p) {
+            select.innerHTML += '<option value="' + p.id + '">' + p.propName + ' (ID: ' + p.propId + ')</option>';
+        });
+        select.value = currentVal;
+    }
+
+    function promptQuickAddVehicle() {
+        var vName = prompt('Enter Vehicle Name:');
+        if (!vName) return;
+        var vPlate = prompt('Enter License Plate Number:');
+        if (!vPlate) return;
+
+        var newVeh = {
+            id: 'rec_' + Date.now(),
+            ownerPhone: appState.userPhone,
+            category: 'fleet',
+            name: vName,
+            number: vPlate,
+            date: '',
+            milestoneDate: ''
+        };
+        appState.records.push(newVeh);
+        saveState();
+        renderAll();
+        populateVehicleDropdownForInsurance();
+        var select = document.getElementById('form-insurance-vehicle-dropdown');
+        if (select) select.value = newVeh.id;
+        alert('Vehicle created and selected!');
+    }
+
+    function promptQuickAddProperty() {
+        var pName = prompt('Enter Property Name:');
+        if (!pName) return;
+        var pId = prompt('Enter Property ID / Number:');
+        if (!pId) return;
+
+        var newProp = {
+            id: 'rec_' + Date.now(),
+            ownerPhone: appState.userPhone,
+            category: 'leases',
+            propName: pName,
+            propId: pId,
+            date: '',
+            taxDueDate: '',
+            milestoneDate: ''
+        };
+        appState.records.push(newProp);
+        saveState();
+        renderAll();
+        populatePropertyDropdownForHouseInsurance();
+        var select = document.getElementById('form-insurance-property-dropdown');
+        if (select) select.value = newProp.id;
+        alert('Property created and selected!');
+    }
+
+    function populateVehicleInsuranceDropdownForFleet() {
+        var select = document.getElementById('form-vehicle-insurance-dropdown');
+        if (!select) return;
+        var currentVal = select.value;
+        select.innerHTML = '<option value="">-- None / Select Policy --</option>';
+        var insurances = appState.records.filter(function(r) { return r.category === 'health' && r.insuranceAssetType === 'Vehicle'; });
+        insurances.forEach(function(ins) {
+            select.innerHTML += '<option value="' + ins.id + '">' + ins.name + ' (Policy #: ' + ins.number + ')</option>';
+        });
+        select.value = currentVal;
+    }
+
+    function handleVehicleTabInsuranceChange() {
+        var insId = document.getElementById('form-vehicle-insurance-dropdown').value;
+        if (!insId) return;
+        var ins = appState.records.find(function(r) { return r.id === insId; });
+        if (ins && ins.date) {
+            document.getElementById('form-date').value = ins.date;
+            autoCalculateMilestone();
+        }
+    }
+
+    function updateMortgageFormFields() {
+        var typeElem = document.getElementById('form-mortgage-type');
+        var type = typeElem ? typeElem.value : 'House Mortgage';
+        var isHouse = (type === 'House Mortgage');
+        var isVeh = (type === 'Vehicle Mortgage');
+        var isPersonalOrBiz = (type === 'Personal Loan' || type === 'Business Loan');
+
+        var grpProp = document.getElementById('grp-mortgage-link-prop');
+        var grpVeh = document.getElementById('grp-mortgage-link-veh');
+        var grpCol = document.getElementById('grp-mortgage-link-collateral');
+
+        if(grpProp) grpProp.style.display = isHouse ? 'flex' : 'none';
+        if(grpVeh) grpVeh.style.display = isVeh ? 'flex' : 'none';
+        if(grpCol) grpCol.style.display = isPersonalOrBiz ? 'flex' : 'none';
+
+        if (isHouse) {
+            var sel = document.getElementById('form-mortgage-prop-dropdown');
+            if(sel) {
+                sel.innerHTML = '<option value="">-- Select Property --</option>';
+                appState.records.filter(function(r){ return r.category === 'leases'; }).forEach(function(p){
+                    sel.innerHTML += '<option value="' + p.id + '">' + p.propName + ' (' + p.propId + ')</option>';
+                });
+            }
+        } else if (isVeh) {
+            var sel = document.getElementById('form-mortgage-veh-dropdown');
+            if(sel) {
+                sel.innerHTML = '<option value="">-- Select Vehicle --</option>';
+                appState.records.filter(function(r){ return r.category === 'fleet'; }).forEach(function(v){
+                    sel.innerHTML += '<option value="' + v.id + '">' + v.name + ' (' + v.number + ')</option>';
+                });
+            }
+        } else if (isPersonalOrBiz) {
+            var sel = document.getElementById('form-mortgage-collateral-dropdown');
+            if(sel) {
+                sel.innerHTML = '<option value="">-- Select Collateral Property --</option>';
+                appState.records.filter(function(r){ return r.category === 'leases'; }).forEach(function(p){
+                    sel.innerHTML += '<option value="' + p.id + '">' + p.propName + ' (' + p.propId + ')</option>';
+                });
+            }
+        }
+    }
+
+    function advanceMortgageDueDate() {
+        var dateInput = document.getElementById('form-payment-due-date');
+        if (!dateInput.value) return alert('Please enter an initial Payment Due Date first.');
+
+        var periodicity = document.getElementById('form-payment-periodicity').value;
+        var curDate = new Date(dateInput.value);
+
+        if (periodicity === 'Biweekly' || periodicity === 'Accelerated Biweekly') {
+            curDate.setDate(curDate.getDate() + 14);
+        } else {
+            var curDay = curDate.getDate();
+            var curMonth = curDate.getMonth() + 1;
+            var curYear = curDate.getFullYear();
+            if (curMonth > 11) {
+                curMonth = 0;
+                curYear += 1;
+            }
+            curDate = new Date(curYear, curMonth, curDay);
+        }
+
+        dateInput.value = curDate.toISOString().split('T')[0];
+        validateForm();
+    }
+
+    function checkIdentityTypeFields(clearFields = true) {
+        var idType = document.getElementById('form-id-type').value;
+        var isPassport = (idType === 'Passport');
+        var isAadhaar = (idType === 'Aadhaar Card');
+        var isVoters = (idType === 'Voters ID');
+        var isDriverLic = (idType === "Driver's License");
+
+        document.getElementById('grp-issuing-country').style.display = isPassport ? 'flex' : 'none';
+        document.getElementById('grp-dl-country-state').style.display = isDriverLic ? 'flex' : 'none';
+        
+        if (isAadhaar || isVoters) {
+            document.getElementById('grp-expiry-date').style.display = 'none';
+            document.getElementById('grp-milestone-date').style.display = 'none';
+        } else {
+            document.getElementById('grp-expiry-date').style.display = 'flex';
+            document.getElementById('grp-milestone-date').style.display = 'flex';
+        }
+
+        if (isDriverLic) {
+            document.getElementById('label-expiry').innerText = "License Expiry Date";
+            document.getElementById('label-number').innerText = "Driver's License Number";
+        } else if (isPassport) {
+            document.getElementById('label-expiry').innerText = "Expiration Date";
+            document.getElementById('label-number').innerText = "Passport Number";
+        } else if (isAadhaar) {
+            document.getElementById('label-number').innerText = "Aadhaar Number";
+        } else if (isVoters) {
+            document.getElementById('label-number').innerText = "EPIC / Registration Number";
+        }
+
+        document.getElementById('label-form-name').innerText = "Holder Name";
+
+        if (clearFields) {
+            document.getElementById('form-name').value = '';
+            document.getElementById('form-number').value = '';
+            document.getElementById('form-date').value = '';
+            if (document.getElementById('form-issue-date')) document.getElementById('form-issue-date').value = '';
+            if (document.getElementById('form-dl-country-state')) document.getElementById('form-dl-country-state').value = '';
+            if (document.getElementById('form-issuing-country')) document.getElementById('form-issuing-country').value = '';
+            document.getElementById('form-milestone-date').value = '';
+            appState.pendingThumbnail = null;
+            updateFormThumbnailPreview();
+        }
+        
+        appState.editingRecordId = null;
+        document.getElementById('form-heading').innerText = "Create New Record";
+        document.getElementById('btn-submit-action').innerText = "Save Record";
+        document.getElementById('btn-cancel-edit').style.display = 'none';
+    }
+
+    function updateInsuranceFormLabels() {
+        var insType = document.getElementById('form-insurance-asset-type').value;
+        var isVehIns = (insType === 'Vehicle');
+        var isHouseIns = (insType === 'House');
+
+        document.getElementById('grp-insurance-vehicle-select').style.display = isVehIns ? 'flex' : 'none';
+        document.getElementById('grp-insurance-property-select').style.display = isHouseIns ? 'flex' : 'none';
+
+        document.getElementById('label-number').innerText = isVehIns ? "Vehicle Policy Number" : (isHouseIns ? "Home Policy Number" : "Policy Number");
+        document.getElementById('label-expiry').innerText = "Policy Expiry Date";
+        
+        if (isVehIns) populateVehicleDropdownForInsurance();
+        if (isHouseIns) populatePropertyDropdownForHouseInsurance();
+    }
+
+    function advanceTaxDueDate() {
+        var dateInput = document.getElementById('form-tax-due-date');
+        if (!dateInput.value) return alert('Please enter an initial Tax Due Date first.');
+        
+        var periodicity = document.getElementById('form-tax-periodicity').value;
+        var curDate = new Date(dateInput.value);
+        var curDay = curDate.getDate();
+        var curMonth = curDate.getMonth();
+        var curYear = curDate.getFullYear();
+
+        if (periodicity === 'Annual') {
+            curYear += 1;
+        } else if (periodicity === 'Semi-Annual') {
+            curMonth += 6;
+            if (curMonth > 11) {
+                curMonth -= 12;
+                curYear += 1;
+            }
+        } else if (periodicity.startsWith('Monthly (10')) {
+            var active = appState.settings.activeMonths || [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+            var nextM = -1;
+            var nextY = curYear;
+            for (var i = 1; i <= 12; i++) {
+                var testM = (curMonth + i) % 12;
+                var testY = curYear + Math.floor((curMonth + i) / 12);
+                if (active.includes(testM)) {
+                    nextM = testM;
+                    nextY = testY;
+                    break;
+                }
+            }
+            if (nextM !== -1) {
+                curMonth = nextM;
+                curYear = nextY;
+            }
+        } else {
+            curMonth += 1;
+            if (curMonth > 11) {
+                curMonth = 0;
+                curYear += 1;
+            }
+        }
+
+        var newDate = new Date(curYear, curMonth, curDay);
+        dateInput.value = newDate.toISOString().split('T')[0];
+        autoCalculateMilestone();
+        validateForm();
+    }
+
+    function advanceLeaseExpiry() {
+        var dateInput = document.getElementById('form-date');
+        if (!dateInput.value) return alert('Please enter an initial Lease Expiry Date first.');
+
+        var monthsStr = prompt('Enter number of months to add for the next lease expiry:', '12');
+        if (!monthsStr || isNaN(monthsStr)) return;
+        var addMonths = parseInt(monthsStr);
+
+        var curDate = new Date(dateInput.value);
+        var curDay = curDate.getDate();
+        var curMonth = curDate.getMonth() + addMonths;
+        var curYear = curDate.getFullYear() + Math.floor(curMonth / 12);
+        curMonth = curMonth % 12;
+
+        var newDate = new Date(curYear, curMonth, curDay);
+        dateInput.value = newDate.toISOString().split('T')[0];
+
+        var rentInput = document.getElementById('form-rent-amount');
+        var pctInput = document.getElementById('form-lease-increase-pct');
+        
+        if (rentInput && pctInput && pctInput.value) {
+            var pct = parseFloat(pctInput.value);
+            var rawRentStr = rentInput.value;
+            var match = rawRentStr.match(/[\d,.]+/);
+            if (match && !isNaN(pct) && pct > 0) {
+                var numVal = parseFloat(match[0].replace(/,/g, ''));
+                if (!isNaN(numVal)) {
+                    var escalatedVal = (numVal * (1 + (pct / 100))).toFixed(2);
+                    if (escalatedVal.endsWith('.00')) {
+                        escalatedVal = parseInt(escalatedVal).toLocaleString();
+                    } else {
+                        escalatedVal = parseFloat(escalatedVal).toLocaleString();
+                    }
+                    rentInput.value = rawRentStr.replace(/[\d,.]+/, escalatedVal);
+                }
+            }
+        }
+
+        autoCalculateMilestone();
+        validateForm();
+    }
+
+    function autoCalculateMilestone() {
+        var leadDays = 30;
+        var cat = appState.activeTab;
+        var dateVal = '';
+
+        if (cat === 'family') {
+            dateVal = document.getElementById('form-family-event-date').value;
+            leadDays = appState.settings.family;
+            if (dateVal) {
+                var targetDate = new Date(dateVal);
+                targetDate.setDate(targetDate.getDate() - leadDays);
+                document.getElementById('form-milestone-date').value = targetDate.toISOString().split('T')[0];
+            }
+            return;
+        } else if (cat === 'leases' && document.getElementById('form-tax-due-date').value) {
+            dateVal = document.getElementById('form-tax-due-date').value;
+            leadDays = parseInt(document.getElementById('form-tax-reminder-days').value) || appState.settings.propertyTax || 7;
+        } else {
+            dateVal = document.getElementById('form-date').value;
+            if (cat === 'identity') {
+                var idType = document.getElementById('form-id-type').value;
+                if (idType === 'Aadhaar Card' || idType === 'Voters ID') return;
+                if (idType === 'Passport') leadDays = appState.settings.passport || 120;
+                else if (idType === "Driver's License") leadDays = appState.settings.dl || 30;
+                else return;
+            } else if (cat === 'visas') leadDays = appState.settings.visa;
+            else if (cat === 'cards') leadDays = appState.settings.card;
+            else if (cat === 'fleet') leadDays = appState.settings.dl || 30;
+            else if (cat === 'health') leadDays = appState.settings.health;
+            else if (cat === 'leases') leadDays = appState.settings.lease;
+        }
+
+        if (!dateVal) return;
+        var targetDate = new Date(dateVal);
+        targetDate.setDate(targetDate.getDate() - leadDays);
+        document.getElementById('form-milestone-date').value = targetDate.toISOString().split('T')[0];
+    }
+
+    function validateForm() {
+        var saveBtn = document.getElementById('btn-submit-action');
+        var cat = appState.activeTab;
+        var isValid = false;
+
+        if (cat === 'family') {
+            var member = document.getElementById('form-family-member').value.trim();
+            var eventDate = document.getElementById('form-family-event-date').value;
+            isValid = member && eventDate;
+        } else if (cat === 'leases') {
+            var pName = document.getElementById('form-prop-name').value.trim();
+            var pId = document.getElementById('form-prop-id').value.trim();
+            isValid = pName && pId;
+        } else if (cat === 'mortgages') {
+            var lender = document.getElementById('form-lender-name').value.trim();
+            var principal = document.getElementById('form-loan-principal').value.trim();
+            isValid = lender && principal;
+        } else if (cat === 'health') {
+            var insHolder = document.getElementById('form-insurance-holder').value.trim();
+            var number = document.getElementById('form-number').value.trim();
+            isValid = insHolder && number;
+        } else {
+            var name = document.getElementById('form-name').value.trim();
+            var number = document.getElementById('form-number').value.trim();
+            isValid = name && number;
+        }
+
+        if (!isValid) {
+            saveBtn.disabled = true;
+            return;
+        }
+
+        if (appState.editingRecordId) {
+            var currentData = getCurrentFormValues();
+            var isModified = JSON.stringify(currentData) !== JSON.stringify(appState.originalRecordData);
+            saveBtn.disabled = !isModified;
+        } else {
+            saveBtn.disabled = false;
+        }
+    }
+
+    function getCurrentFormValues() {
+        return {
+            category: appState.activeTab,
+            insuranceAssetType: document.getElementById('form-insurance-asset-type').value,
+            insuranceHolder: document.getElementById('form-insurance-holder').value,
+            insuranceVehicleId: document.getElementById('form-insurance-vehicle-dropdown').value,
+            insurancePropertyId: document.getElementById('form-insurance-property-dropdown').value,
+            idType: document.getElementById('form-id-type').value,
+            dlCountryState: document.getElementById('form-dl-country-state').value,
+            issuingCountry: document.getElementById('form-issuing-country') ? document.getElementById('form-issuing-country').value : '',
+            cardNetwork: document.getElementById('form-card-network').value,
+            name: document.getElementById('form-name').value,
+            number: document.getElementById('form-number').value,
+            issueDate: document.getElementById('form-issue-date') ? document.getElementById('form-issue-date').value : '',
+            date: document.getElementById('form-date').value,
+            regCard: document.getElementById('form-reg-card').value,
+            vin: document.getElementById('form-vin').value,
+            mileage: document.getElementById('form-mileage').value,
+            purchaseCost: document.getElementById('form-purchase-cost').value,
+            vehicleInsuranceId: document.getElementById('form-vehicle-insurance-dropdown').value,
+            premium: document.getElementById('form-premium').value,
+            propCountry: document.getElementById('form-prop-country').value,
+            propCity: document.getElementById('form-prop-city').value,
+            propName: document.getElementById('form-prop-name').value,
+            propId: document.getElementById('form-prop-id').value,
+            taxAmount: document.getElementById('form-tax-amount').value,
+            taxPeriodicity: document.getElementById('form-tax-periodicity').value,
+            taxDueDate: document.getElementById('form-tax-due-date').value,
+            taxReminderDays: document.getElementById('form-tax-reminder-days').value,
+            tenantName: document.getElementById('form-tenant-name').value,
+            rentAmount: document.getElementById('form-rent-amount').value,
+            leaseIncreasePct: document.getElementById('form-lease-increase-pct').value,
+            mortgageType: document.getElementById('form-mortgage-type').value,
+            mortgagePropId: document.getElementById('form-mortgage-prop-dropdown').value,
+            mortgageVehId: document.getElementById('form-mortgage-veh-dropdown').value,
+            mortgageCollateralId: document.getElementById('form-mortgage-collateral-dropdown').value,
+            lenderName: document.getElementById('form-lender-name').value,
+            loanAccount: document.getElementById('form-loan-account').value,
+            loanPrincipal: document.getElementById('form-loan-principal').value,
+            loanTerm: document.getElementById('form-loan-term').value,
+            loanRate: document.getElementById('form-loan-rate').value,
+            paymentPeriodicity: document.getElementById('form-payment-periodicity').value,
+            paymentDueDate: document.getElementById('form-payment-due-date').value,
+            familyEventType: document.getElementById('form-family-event-type').value,
+            familyMember: document.getElementById('form-family-member').value,
+            familyEventDate: document.getElementById('form-family-event-date').value,
+            milestoneDate: document.getElementById('form-milestone-date').value,
+            thumbnail: appState.pendingThumbnail || null
+        };
+    }
+
+    function editRecord(recordId) {
+        var rec = appState.records.find(function(r) { return r.id === recordId; });
+        if (!rec) return;
+
+        appState.editingRecordId = rec.id;
+        appState.pendingThumbnail = rec.thumbnail || null;
+        updateFormThumbnailPreview();
+        switchTab(rec.category);
+
+        if (rec.category === 'family') {
+            document.getElementById('form-family-event-type').value = rec.familyEventType || 'Birthday';
+            document.getElementById('form-family-member').value = rec.familyMember || '';
+            document.getElementById('form-family-event-date').value = rec.familyEventDate || '';
+            document.getElementById('form-milestone-date').value = rec.milestoneDate || '';
+        } else if (rec.category === 'mortgages') {
+            document.getElementById('form-mortgage-type').value = rec.mortgageType || 'House Mortgage';
+            updateMortgageFormFields();
+            if (rec.mortgagePropId) document.getElementById('form-mortgage-prop-dropdown').value = rec.mortgagePropId;
+            if (rec.mortgageVehId) document.getElementById('form-mortgage-veh-dropdown').value = rec.mortgageVehId;
+            if (rec.mortgageCollateralId) document.getElementById('form-mortgage-collateral-dropdown').value = rec.mortgageCollateralId;
+            document.getElementById('form-lender-name').value = rec.lenderName || '';
+            document.getElementById('form-loan-account').value = rec.loanAccount || '';
+            document.getElementById('form-loan-principal').value = rec.loanPrincipal || '';
+            document.getElementById('form-loan-term').value = rec.loanTerm || '';
+            document.getElementById('form-loan-rate').value = rec.loanRate || '';
+            document.getElementById('form-payment-periodicity').value = rec.paymentPeriodicity || 'Monthly';
+            document.getElementById('form-payment-due-date').value = rec.paymentDueDate || '';
+        } else {
+            if (rec.insuranceAssetType) document.getElementById('form-insurance-asset-type').value = rec.insuranceAssetType;
+            if (rec.insuranceHolder || rec.name) document.getElementById('form-insurance-holder').value = rec.insuranceHolder || rec.name;
+            if (rec.insuranceVehicleId) document.getElementById('form-insurance-vehicle-dropdown').value = rec.insuranceVehicleId;
+            if (rec.insurancePropertyId) document.getElementById('form-insurance-property-dropdown').value = rec.insurancePropertyId;
+            if (rec.idType) document.getElementById('form-id-type').value = rec.idType;
+            if (rec.dlCountryState) document.getElementById('form-dl-country-state').value = rec.dlCountryState;
+            if (rec.issuingCountry && document.getElementById('form-issuing-country')) document.getElementById('form-issuing-country').value = rec.issuingCountry;
+            if (rec.cardNetwork) document.getElementById('form-card-network').value = rec.cardNetwork;
+            document.getElementById('form-name').value = rec.name || '';
+            document.getElementById('form-number').value = rec.number || '';
+            if (rec.issueDate && document.getElementById('form-issue-date')) document.getElementById('form-issue-date').value = rec.issueDate;
+            if (rec.date) document.getElementById('form-date').value = rec.date;
+            if (rec.regCard) document.getElementById('form-reg-card').value = rec.regCard;
+            if (rec.vin) document.getElementById('form-vin').value = rec.vin;
+            if (rec.mileage) document.getElementById('form-mileage').value = rec.mileage;
+            if (rec.purchaseCost) document.getElementById('form-purchase-cost').value = rec.purchaseCost;
+            if (rec.vehicleInsuranceId) document.getElementById('form-vehicle-insurance-dropdown').value = rec.vehicleInsuranceId;
+            if (rec.premium) document.getElementById('form-premium').value = rec.premium;
+            if (rec.propCountry) document.getElementById('form-prop-country').value = rec.propCountry;
+            if (rec.propCity) document.getElementById('form-prop-city').value = rec.propCity;
+            if (rec.propName) document.getElementById('form-prop-name').value = rec.propName;
+            if (rec.propId) document.getElementById('form-prop-id').value = rec.propId;
+            if (rec.taxAmount) document.getElementById('form-tax-amount').value = rec.taxAmount;
+            if (rec.taxPeriodicity) document.getElementById('form-tax-periodicity').value = rec.taxPeriodicity;
+            if (rec.taxDueDate) document.getElementById('form-tax-due-date').value = rec.taxDueDate;
+            if (rec.taxReminderDays) document.getElementById('form-tax-reminder-days').value = rec.taxReminderDays;
+            if (rec.tenantName) document.getElementById('form-tenant-name').value = rec.tenantName;
+            if (rec.rentAmount) document.getElementById('form-rent-amount').value = rec.rentAmount;
+            if (rec.leaseIncreasePct) document.getElementById('form-lease-increase-pct').value = rec.leaseIncreasePct;
+        }
+
+        autoCalculateMilestone();
+        appState.originalRecordData = getCurrentFormValues();
+
+        document.getElementById('form-heading').innerText = "Edit Record: " + (rec.name || rec.familyMember || rec.propName || rec.lenderName);
+        document.getElementById('btn-submit-action').innerText = "Update Record";
+        document.getElementById('btn-cancel-edit').style.display = 'inline-block';
+        document.getElementById('btn-submit-action').disabled = true;
+    }
+
+    async function deleteRecord(recordId, event) {
+        event.stopPropagation();
+        if (!confirm('Are you sure you want to delete this record from your air-gapped vault?')) return;
+
+        appState.records = appState.records.filter(function(r) { return r.id !== recordId; });
+        await saveState();
+        renderAll();
+        alert('Record deleted successfully.');
+    }
+
+    function cancelEditMode() {
+        appState.editingRecordId = null;
+        appState.originalRecordData = null;
+        appState.pendingThumbnail = null;
+        updateFormThumbnailPreview();
+        document.getElementById('record-form').reset();
+        
+        // BUGFIX: Aggressively clear ALL optional input fields so creating a new property never bleeds data
+        var optionalInputs = [
+            'form-name', 'form-number', 'form-insurance-holder', 'form-reg-card', 'form-vin', 
+            'form-mileage', 'form-purchase-cost', 'form-premium', 'form-prop-name', 'form-prop-id', 
+            'form-prop-country', 'form-prop-city', 'form-tax-amount', 'form-tax-due-date', 
+            'form-tax-reminder-days', 'form-tenant-name', 'form-rent-amount', 'form-lease-increase-pct',
+            'form-lender-name', 'form-loan-account', 'form-loan-principal', 'form-loan-term', 
+            'form-loan-rate', 'form-payment-due-date', 'form-family-member', 'form-family-event-date', 
+            'form-date', 'form-issue-date', 'form-milestone-date', 'form-dl-country-state', 'form-issuing-country'
+        ];
+        optionalInputs.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+
+        updateFormForCategory(appState.activeTab);
+    }
+
+    async function handleAddOrUpdateRecord(e) {
+        e.preventDefault();
+        if (!appState.encryptionKey) return alert('Vault is locked.');
+
+        var rawValues = getCurrentFormValues();
+        var formValues = sanitizeRecordSchema(appState.activeTab, rawValues);
+        formValues.thumbnail = appState.pendingThumbnail || null;
+
+        if (appState.editingRecordId) {
+            var idx = appState.records.findIndex(function(r) { return r.id === appState.editingRecordId; });
+            if (idx !== -1) {
+                appState.records[idx] = Object.assign({}, appState.records[idx], formValues);
+            }
+            alert('Record updated successfully.');
+        } else {
+            var newRecord = Object.assign({
+                id: 'rec_' + Date.now(),
+                ownerPhone: appState.userPhone,
+                milestoneDate: formValues.milestoneDate || ''
+            }, formValues);
+            appState.records.push(newRecord);
+            alert('Record saved successfully.');
+        }
+
+        await saveState();
+        cancelEditMode();
+        switchTab(appState.activeTab);
+        autoPushLocalWifiBackup();
+    }
+
+    function sanitizeRecordSchema(category, raw) {
+        var clean = { category: category };
+        if (category === 'identity') {
+            clean.idType = raw.idType || 'Passport';
+            if (clean.idType === 'Passport') {
+                clean.issuing_country = raw.issuingCountry || 'IND';
+                clean.name = raw.name || '';
+                clean.number = raw.number || '';
+                clean.issue_date = raw.issueDate || '';
+                clean.date = raw.date || '';
+                clean.milestoneDate = raw.milestoneDate || '';
+            } else if (clean.idType === 'Voters ID') {
+                clean.name = raw.name || '';
+                clean.number = raw.number || '';
+                clean.issue_date = raw.issueDate || '';
+            } else if (clean.idType === 'Aadhaar Card') {
+                clean.name = raw.name || '';
+                clean.number = '[Aadhaar Redacted]';
+                clean.issue_date = raw.issueDate || '';
+            } else if (clean.idType === "Driver's License") {
+                clean.dlCountryState = raw.dlCountryState || '';
+                clean.name = raw.name || '';
+                clean.number = raw.number || '';
+                clean.issue_date = raw.issueDate || '';
+                clean.date = raw.date || '';
+                clean.milestoneDate = raw.milestoneDate || '';
+            }
+        } else if (category === 'family') {
+            clean.familyEventType = raw.familyEventType || 'Birthday';
+            clean.familyMember = raw.familyMember || '';
+            clean.familyEventDate = raw.familyEventDate || '';
+            clean.milestoneDate = raw.milestoneDate || '';
+        } else if (category === 'visas') {
+            clean.name = raw.name || '';
+            clean.number = raw.number || '';
+            clean.issue_date = raw.issueDate || '';
+            clean.date = raw.date || '';
+            clean.milestoneDate = raw.milestoneDate || '';
+        } else if (category === 'cards') {
+            clean.cardNetwork = raw.cardNetwork || 'Visa';
+            clean.name = raw.name || '';
+            clean.number = raw.number || '';
+            clean.date = raw.date || '';
+            clean.milestoneDate = raw.milestoneDate || '';
+        } else if (category === 'fleet') {
+            clean.name = raw.name || '';
+            clean.number = raw.number || '';
+            clean.regCard = raw.regCard || '';
+            clean.vin = raw.vin || '';
+            clean.mileage = parseFloat(raw.mileage) || 0;
+            clean.purchaseCost = parseFloat(raw.purchaseCost) || 0.0;
+            clean.vehicleInsuranceId = raw.vehicleInsuranceId || '';
+            clean.date = raw.date || '';
+            clean.milestoneDate = raw.milestoneDate || '';
+        } else if (category === 'health') {
+            clean.insuranceAssetType = raw.insuranceAssetType || 'Health';
+            clean.name = raw.insuranceHolder || raw.name || '';
+            clean.number = raw.number || '';
+            clean.insuranceVehicleId = raw.insuranceVehicleId || '';
+            clean.insurancePropertyId = raw.insurancePropertyId || '';
+            clean.premium = parseFloat(raw.premium) || 0.0;
+            clean.date = raw.date || '';
+            clean.milestoneDate = raw.milestoneDate || '';
+        } else if (category === 'leases') {
+            clean.propName = raw.propName || '';
+            clean.propId = raw.propId || '';
+            clean.propCountry = raw.propCountry || '';
+            clean.propCity = raw.propCity || '';
+            clean.taxAmount = parseFloat(raw.taxAmount) || 0.0;
+            clean.taxPeriodicity = raw.taxPeriodicity || 'Annual';
+            clean.taxDueDate = raw.taxDueDate || '';
+            clean.taxReminderDays = parseInt(raw.taxReminderDays) || 7;
+            clean.tenantName = raw.tenantName || '';
+            clean.rentAmount = raw.rentAmount || '';
+            clean.leaseIncreasePct = parseFloat(raw.leaseIncreasePct) || 0.0;
+            clean.date = raw.date || '';
+            clean.milestoneDate = raw.milestoneDate || '';
+        } else if (category === 'mortgages') {
+            clean.mortgageType = raw.mortgageType || 'House Mortgage';
+            clean.mortgagePropId = raw.mortgagePropId || '';
+            clean.mortgageVehId = raw.mortgageVehId || '';
+            clean.mortgageCollateralId = raw.mortgageCollateralId || '';
+            clean.lenderName = raw.lenderName || '';
+            clean.loanAccount = raw.loanAccount || '';
+            clean.loanPrincipal = parseFloat(raw.loanPrincipal) || 0.0;
+            clean.loanTerm = parseInt(raw.loanTerm) || 0;
+            clean.loanRate = parseFloat(raw.loanRate) || 0.0;
+            clean.paymentPeriodicity = raw.paymentPeriodicity || 'Monthly';
+            clean.paymentDueDate = raw.paymentDueDate || '';
+        }
+        return clean;
+    }
+
+    async function compressImageToWebP(fileOrBlob) {
+        return new Promise(function(resolve) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var img = new Image();
+                img.onload = function() {
+                    var canvas = document.createElement('canvas');
+                    var maxW = 1600;
+                    var w = img.width;
+                    var h = img.height;
+                    if (w > maxW) {
+                        h = Math.round((h * maxW) / w);
+                        w = maxW;
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    var webpDataUrl = canvas.toDataURL('image/webp', 0.9);
+                    resolve(webpDataUrl);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(fileOrBlob);
+        });
+    }
+
+    async function handleCameraOCRFileSelect(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        
+        var base64Result = "";
+        if (file.type === "application/pdf") {
+            var reader = new FileReader();
+            reader.onload = async function(evt) {
+                base64Result = evt.target.result;
+                appState.pendingThumbnail = base64Result;
+                updateFormThumbnailPreview();
+                runOcrScanPipeline(base64Result, appState.selectedOcrFolder);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            base64Result = await compressImageToWebP(file);
+            appState.pendingThumbnail = base64Result;
+            updateFormThumbnailPreview();
+            runOcrScanPipeline(base64Result, appState.selectedOcrFolder);
+        }
+    }
+
+    function runOcrScanPipeline(fileBase64, folderCategory) {
+        var mode = document.getElementById('ocr-mode-select').value;
+        var cfgMode = (window.PRIVAUULT_CONFIG && window.PRIVAUULT_CONFIG.PROCESSING_MODE) || 'scenario3';
+
+        if (mode === 'tag') {
+            var recId = document.getElementById('ocr-target-record-select').value;
+            var rec = appState.records.find(function(r) { return r.id === recId; });
+            if (rec) {
+                rec.thumbnail = fileBase64;
+                saveState();
+                renderAll();
+                alert('Document successfully attached to existing record: ' + (rec.name || rec.familyMember || rec.propName || rec.lenderName));
+            }
+            return;
+        }
+
+        if (cfgMode === 'scenario1') {
+            alert('File compressed to WebP and attached locally. Complete record fields and click Save.');
+            validateForm();
+            return;
+        }
+
+        var payload = {
+            file: fileBase64,
+            folder_category: folderCategory,
+            holder_name: document.getElementById('form-name') ? document.getElementById('form-name').value : 'Primary Holder'
+        };
+
+        var baseUrl = (window.PRIVAUULT_CONFIG && window.PRIVAUULT_CONFIG.API_BASE_URL) 
+            ? window.PRIVAUULT_CONFIG.API_BASE_URL 
+            : 'http://127.0.0.1:8000';
+
+        fetch(baseUrl + '/api/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(function(res) {
+            if (!res.ok) throw new Error('OCR Server response error');
+            return res.json();
+        })
+        .then(function(data) {
+            appState.pendingThumbnail = fileBase64;
+            updateFormThumbnailPreview();
+            var extracted = Object.assign({}, data, data.extracted_fields || {});
+            
+            var holderName = extracted.name || '';
+            var docNumber = extracted.number || '';
+            var expiryDate = extracted.expiry || '';
+            var issueDate = extracted.issue_date || '';
+            var country = extracted.country || '';
+
+            var fieldsPopulated = 0;
+
+            if (folderCategory === 'Passport' || folderCategory === 'Aadhaar Card' || folderCategory === 'Voters ID' || folderCategory === 'Driver\'s License') {
+                switchTab('identity');
+                document.getElementById('form-id-type').value = folderCategory;
+                checkIdentityTypeFields(false);
+                
+                if (holderName) { document.getElementById('form-name').value = holderName; fieldsPopulated++; }
+                if (docNumber) { document.getElementById('form-number').value = docNumber; fieldsPopulated++; }
+                if (expiryDate) {
+                    document.getElementById('form-date').value = expiryDate;
+                    autoCalculateMilestone();
+                    fieldsPopulated++;
+                }
+                if (issueDate && document.getElementById('form-issue-date')) {
+                    document.getElementById('form-issue-date').value = issueDate;
+                    fieldsPopulated++;
+                }
+                if (country && document.getElementById('form-issuing-country')) {
+                    document.getElementById('form-issuing-country').value = country;
+                    fieldsPopulated++;
+                }
+            } else if (folderCategory === 'Visa') {
+                switchTab('visas');
+                if (country) { document.getElementById('form-name').value = country; fieldsPopulated++; }
+                if (docNumber) { document.getElementById('form-number').value = docNumber; fieldsPopulated++; }
+                if (expiryDate) {
+                    document.getElementById('form-date').value = expiryDate;
+                    autoCalculateMilestone();
+                    fieldsPopulated++;
+                }
+                if (issueDate && document.getElementById('form-issue-date')) {
+                    document.getElementById('form-issue-date').value = issueDate;
+                    fieldsPopulated++;
+                }
+            } else if (folderCategory === 'Credit Card') {
+                switchTab('cards');
+                if (holderName) { document.getElementById('form-name').value = holderName; fieldsPopulated++; }
+                if (docNumber) { document.getElementById('form-number').value = docNumber; fieldsPopulated++; }
+                if (expiryDate) {
+                    document.getElementById('form-date').value = expiryDate;
+                    autoCalculateMilestone();
+                    fieldsPopulated++;
+                }
+            } else if (folderCategory === 'Vehicle') {
+                switchTab('fleet');
+                if (extracted.vehicle_name) { document.getElementById('form-name').value = extracted.vehicle_name; fieldsPopulated++; }
+                if (docNumber) { document.getElementById('form-number').value = docNumber; fieldsPopulated++; }
+            } else if (folderCategory === 'Insurance') {
+                switchTab('health');
+                if (holderName) { document.getElementById('form-insurance-holder').value = holderName; fieldsPopulated++; }
+                if (docNumber) { document.getElementById('form-number').value = docNumber; fieldsPopulated++; }
+                if (expiryDate) {
+                    document.getElementById('form-date').value = expiryDate;
+                    autoCalculateMilestone();
+                    fieldsPopulated++;
+                }
+            }
+
+            validateForm();
+
+            if (folderCategory === 'Passport' && !docNumber) {
+                alert('Passport number was not updated. Please review and update the holder name and passport number manually.');
+            } else if (fieldsPopulated > 0) {
+                alert('Scan successfully parsed ' + fieldsPopulated + ' field(s) from [' + folderCategory + '].');
+            } else {
+                alert('Scan completed, but no key fields matched. Please review and fill manually.');
+            }
+        })
+        .catch(function(err) {
+            console.error("Scan Pipeline Error:", err);
+            appState.pendingThumbnail = fileBase64;
+            updateFormThumbnailPreview();
+            alert('Server unreachable. WebP file attached locally so you can complete entry.');
+            validateForm();
+        });
+    }
+
+    async function handleBiometricUnlock() {
+        try {
+            const salt = new Uint8Array(16);
+            let credentialIdHex = localStorage.getItem('privault_cred_id');
+            let prfOutputBytes = null;
+
+            if (!credentialIdHex) {
+                const createResult = await navigator.credentials.create({
+                    publicKey: {
+                        challenge: window.crypto.getRandomValues(new Uint8Array(32)),
+                        rp: { name: "PriVaultHub Air-Gapped" },
+                        user: { id: window.crypto.getRandomValues(new Uint8Array(16)), name: "local_user@privault", displayName: "Local Vault Owner" },
+                        pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+                        authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required" },
+                        extensions: { prf: { eval: { first: salt } } }
+                    }
+                });
+
+                credentialIdHex = Array.from(new Uint8Array(createResult.rawId)).map(b => b.toString(16).padStart(2, '0')).join('');
+                localStorage.setItem('privault_cred_id', credentialIdHex);
+                
+                const extResults = createResult.getClientExtensionResults();
+                if (extResults && extResults.prf && extResults.prf.results && extResults.prf.results.first) {
+                    prfOutputBytes = new Uint8Array(extResults.prf.results.first);
+                } else {
+                    throw new Error("Hardware/browser does not support WebAuthn PRF extension or running via file:// protocol.");
+                }
+            } else {
+                const credIdBytes = new Uint8Array(credentialIdHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+                const getResult = await navigator.credentials.get({
+                    publicKey: {
+                        challenge: window.crypto.getRandomValues(new Uint8Array(32)),
+                        allowCredentials: [{ id: credIdBytes, type: "public-key" }],
+                        userVerification: "required",
+                        extensions: { prf: { eval: { first: salt } } }
+                    }
+                });
+
+                const extResults = getResult.getClientExtensionResults();
+                if (extResults && extResults.prf && extResults.prf.results && extResults.prf.results.first) {
+                    prfOutputBytes = new Uint8Array(extResults.prf.results.first);
+                } else {
+                    throw new Error("PRF extension evaluation failed or unsupported.");
+                }
+            }
+
+            appState.encryptionKey = await window.crypto.subtle.importKey(
+                "raw", prfOutputBytes.slice(0, 32), { name: "AES-GCM" }, false, ["encrypt", "decrypt"]
+            );
+
+            await loadEncryptedRecords();
+        } catch (e) {
+            alert('Biometric unlock failed: ' + e.message + '\n\nTip: You can use the Master Password / PIN fallback below.');
+        }
+    }
+
+    async function handlePasswordUnlock() {
+        var pwd = document.getElementById('fallback-password-input').value;
+        if (!pwd) return alert('Please enter a master password or PIN.');
+        try {
+            const enc = new TextEncoder();
+            const keyMaterial = await window.crypto.subtle.importKey(
+                "raw", enc.encode(pwd), { name: "PBKDF2" }, false, ["deriveKey"]
+            );
+            const salt = enc.encode("privault_fallback_salt_v1");
+            appState.encryptionKey = await window.crypto.subtle.deriveKey(
+                { name: "PBKDF2", salt: salt, iterations: 100000, hash: "SHA-256" },
+                keyMaterial,
+                { name: "AES-GCM", length: 256 },
+                false,
+                ["encrypt", "decrypt"]
+            );
+
+            await loadEncryptedRecords();
+        } catch (e) {
+            alert('Decryption failed: ' + e.message);
+        }
+    }
+
+    async function loadEncryptedRecords() {
+        const encryptedDataHex = localStorage.getItem('privault_secure_db');
+        if (encryptedDataHex) {
+            const rawData = new Uint8Array(encryptedDataHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+            const iv = rawData.slice(0, 12);
+            const ciphertext = rawData.slice(12);
+            
+            try {
+                const decrypted = await window.crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv: iv }, appState.encryptionKey, ciphertext
+                );
+                appState.records = JSON.parse(new TextDecoder().decode(decrypted));
+            } catch (decErr) {
+                appState.records = [];
+                await saveState();
+            }
+        } else {
+            appState.records = [];
+            await saveState();
+        }
+
+        document.getElementById('lock-overlay').style.display = 'none';
+        renderAll();
+    }
+
+    async function saveState() {
+        if (!appState.encryptionKey) return;
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const encoded = new TextEncoder().encode(JSON.stringify(appState.records));
+        const ciphertext = await window.crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: iv }, appState.encryptionKey, encoded
+        );
+        
+        const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+        combined.set(iv);
+        combined.set(new Uint8Array(ciphertext), iv.length);
+        
+        localStorage.setItem('privault_secure_db', Array.from(combined).map(b => b.toString(16).padStart(2, '0')).join(''));
+    }
+
+    function handleSavePhone() {
+        var phone = document.getElementById('user-phone-input').value.trim();
+        if(!phone) return alert('Enter a valid mobile number.');
+        appState.userPhone = phone;
+        localStorage.setItem('privault_user_phone', phone);
+        document.getElementById('display-phone').innerText = phone;
+        document.getElementById('phone-setup-container').style.display = 'none';
+        renderAll();
+        autoPushLocalWifiBackup();
+    }
+
+    function handleExport() {
+        if (!appState.encryptionKey) return alert('Unlock vault first.');
+        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(localStorage.getItem('privault_secure_db') + "|" + localStorage.getItem('privault_cred_id'));
+        var downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", "privault_backup.txt");
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    }
+
+    function handleImport(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(evt) {
+            try {
+                var parts = evt.target.result.split('|');
+                if (parts.length === 2) {
+                    localStorage.setItem('privault_secure_db', parts[0]);
+                    localStorage.setItem('privault_cred_id', parts[1]);
+                    alert('Backup imported successfully. Please re-authenticate.');
+                    location.reload();
+                }
+            } catch (err) {
+                alert('Invalid backup format.');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function renderAll() {
+        if (!appState.encryptionKey) return;
+        var searchInput = document.getElementById('global-search');
+        var searchQuery = searchInput ? searchInput.value.toLowerCase() : '';
+        
+        var categories = ['master', 'family', 'identity', 'visas', 'cards', 'fleet', 'health', 'leases', 'mortgages'];
+        categories.forEach(function(cat) {
+            var gridElem = document.getElementById('grid-' + cat);
+            if (gridElem) gridElem.innerHTML = '';
+        });
+
+        var memberMatch = appState.settings.members.find(function(m){ return m.phone === appState.userPhone; });
+
+        appState.records.forEach(function(rec) {
+            var isOwner = (rec.ownerPhone === appState.userPhone) || (!appState.userPhone);
+            var isShared = false;
+
+            if (!isOwner && memberMatch) {
+                if (memberMatch.scope === 'All') {
+                    isShared = true;
+                } else if (memberMatch.scope === 'Category') {
+                    var allowedCats = Array.isArray(memberMatch.categories) ? memberMatch.categories : [];
+                    if (allowedCats.includes(rec.category)) isShared = true;
+                } else if (memberMatch.scope === 'Record') {
+                    var allowedRecs = Array.isArray(memberMatch.records) ? memberMatch.records : [];
+                    if (allowedRecs.includes(rec.id)) isShared = true;
+                } else if (memberMatch.scope === 'Reminders' && rec.milestoneDate) {
+                    isShared = true;
+                }
+            }
+
+            if (!isOwner && !isShared) return;
+
+            var recordTitle = rec.name || rec.familyMember || rec.propName || rec.lenderName || 'Untitled Record';
+            var fullSearchStr = (recordTitle + " " + (rec.number || '') + " " + rec.category + " " + (rec.propCity || '')).toLowerCase();
+            if (searchQuery && fullSearchStr.indexOf(searchQuery) === -1) return;
+
+            var attachmentHTML = '';
+            if (rec.thumbnail) {
+                var isPdf = rec.thumbnail.startsWith('data:application/pdf');
+                if (isPdf) {
+                    attachmentHTML = '<div class="card-pdf-badge" onclick="openDocumentViewer(\'' + rec.thumbnail + '\', event)"><span>📄 PDF Document</span><span style="font-size:11px; color:var(--text-muted);">(Click to view)</span></div>';
+                } else {
+                    attachmentHTML = '<img src="' + rec.thumbnail + '" class="card-thumbnail" alt="Thumbnail" onclick="openDocumentViewer(\'' + rec.thumbnail + '\', event)" />';
+                }
+            }
+
+            var cardHTML = '<div class="card" onclick="editRecord(\'' + rec.id + '\')">' +
+                attachmentHTML +
+                (rec.category === 'family' ? 
+                    '<h4>🎉 ' + safeStr(rec.familyMember) + ' (' + safeStr(rec.familyEventType) + ')</h4>' +
+                    '<p><strong>Date:</strong> ' + safeStr(rec.familyEventDate) + '</p>' +
+                    '<p><strong>Renewal Reminder:</strong> ' + safeStr(rec.milestoneDate) + '</p>' :
+                    rec.category === 'leases' ?
+                    '<h4>🏠 ' + safeStr(rec.propName) + ' (' + safeStr(rec.propId) + ')</h4>' +
+                    '<p><strong>City/Town:</strong> ' + safeStr(rec.propCity) + ' | <strong>Tax:</strong> ' + safeStr(rec.taxAmount) + '</p>' +
+                    '<p><strong>Tax Due:</strong> ' + safeStr(rec.taxDueDate) + ' | <strong>Tenant:</strong> ' + safeStr(rec.tenantName) + '</p>' +
+                    '<p><strong>Rent:</strong> ' + safeStr(rec.rentAmount) + (rec.leaseIncreasePct ? ' (' + rec.leaseIncreasePct + '% Esc.)' : '') + '</p>' +
+                    '<p><strong>Lease Expiry:</strong> ' + safeStr(rec.date) + '</p>' :
+                    rec.category === 'fleet' ?
+                    '<h4>🚗 ' + safeStr(rec.name) + '</h4>' +
+                    '<p><strong>Plate:</strong> ' + safeStr(rec.number) + ' | <strong>VIN:</strong> ' + safeStr(rec.vin) + '</p>' +
+                    (function(){
+                        var linkedIns = appState.records.find(function(i){ return i.id === rec.vehicleInsuranceId; });
+                        return linkedIns ? '<p style="color:var(--success);">🛡️ <strong>Insurance Policy:</strong> ' + safeStr(linkedIns.name) + ' (Expiry: ' + safeStr(linkedIns.date) + ')</p>' : '<p style="color:var(--warning);">🛡️ <strong>Insurance Policy:</strong> None Associated</p>';
+                    })() :
+                    rec.category === 'mortgages' ?
+                    '<h4>💰 ' + safeStr(rec.lenderName) + ' (' + safeStr(rec.mortgageType) + ')</h4>' +
+                    '<p><strong>Principal:</strong> ' + safeStr(rec.loanPrincipal) + ' | <strong>Rate:</strong> ' + safeStr(rec.loanRate) + '%</p>' +
+                    '<p><strong>Payment Due:</strong> ' + safeStr(rec.paymentDueDate) + ' (' + safeStr(rec.paymentPeriodicity) + ')</p>' :
+                    '<h4>' + safeStr(recordTitle) + '</h4>' +
+                    '<p><strong>Number/ID:</strong> ' + safeStr(rec.number) + '</p>' +
+                    (rec.category === 'identity' && rec.dlCountryState ? '<p><strong>Country/State:</strong> ' + safeStr(rec.dlCountryState) + '</p>' : '') +
+                    (rec.category === 'cards' ? '<p><strong>Network:</strong> ' + safeStr(rec.cardNetwork) + '</p>' : '') +
+                    (rec.category === 'health' ? '<p><strong>Insurer:</strong> ' + safeStr(rec.name) + ' | <strong>Premium:</strong> ' + safeStr(rec.premium) + '</p>' : '') +
+                    (rec.date ? '<p><strong>Expiry:</strong> ' + safeStr(rec.date) + '</p>' : '') +
+                    (rec.milestoneDate ? '<p><strong>Renewal Reminder:</strong> ' + safeStr(rec.milestoneDate) + '</p>' : '')
+                ) +
+                '<div class="card-actions">' +
+                    (isOwner ? '<span class="badge">Owner</span>' : '<span class="badge badge-shared">Shared Access (' + (memberMatch ? memberMatch.perm : 'Read') + ')</span>') +
+                    (rec.thumbnail ? '<button class="btn btn-success" style="padding:2px 6px; font-size:11px;" onclick="shareDocumentImage(\'' + rec.id + '\', event)">Share</button>' : '') +
+                    (rec.thumbnail ? '<button class="btn btn-danger" style="padding:2px 6px; font-size:11px;" onclick="detachRecordImage(\'' + rec.id + '\', event)" title="Detach File">Detach File</button>' : '') +
+                    '<button class="btn-trash" onclick="deleteRecord(\'' + rec.id + '\', event)" title="Delete Record">🗑️</button>' +
+                '</div>' +
+                '</div>';
+
+            var catGrid = document.getElementById('grid-' + rec.category);
+            if (catGrid) catGrid.innerHTML += cardHTML;
+
+            var masterGrid = document.getElementById('grid-master');
+            if (masterGrid) masterGrid.innerHTML += cardHTML;
+        });
+    }
+
+    function openDocumentViewer(dataUrl, event) {
+        if (event) event.stopPropagation();
+        var modal = document.createElement('div');
+        modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;";
+        
+        var isPdf = dataUrl.startsWith('data:application/pdf');
+        if (isPdf) {
+            modal.innerHTML = '<div style="position:relative; width:90%; height:90%; background:#fff; border-radius:8px; overflow:hidden;">' +
+                '<button onclick="this.parentElement.parentElement.remove()" style="position:absolute; top:10px; right:10px; z-index:10000; background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">Close ✕</button>' +
+                '<iframe src="' + dataUrl + '" style="width:100%; height:100%; border:none;"></iframe>' +
+            '</div>';
+        } else {
+            modal.innerHTML = '<div style="position:relative; max-width:90%; max-height:90%;">' +
+                '<button onclick="this.parentElement.parentElement.remove()" style="position:absolute; top:-40px; right:0; background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">Close ✕</button>' +
+                '<img src="' + dataUrl + '" style="max-width:90vw; max-height:85vh; border-radius:8px; display:block;" />' +
+            '</div>';
+        }
+        document.body.appendChild(modal);
+    }
+
+    async function shareDocumentImage(recordId, event) {
+        if (event) event.stopPropagation();
+        var record = appState.records.find(function(r) { return r.id === recordId; });
+        if (!record || !record.thumbnail) return alert('No file attached to share.');
+
+        try {
+            var res = await fetch(record.thumbnail);
+            var blob = await res.blob();
+            var isPdf = record.thumbnail.startsWith('data:application/pdf');
+            var ext = isPdf ? 'pdf' : 'webp';
+            var mime = isPdf ? 'application/pdf' : 'image/webp';
+            var file = new File([blob], (record.category || 'doc') + '_' + (record.name || record.familyMember || record.lenderName || 'record') + '.' + ext, { type: mime });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    title: record.category + ' - ' + (record.name || record.familyMember || ''),
+                    text: 'Secure document attachment from PriVaultHub',
+                    files: [file]
+                });
+            } else {
+                var a = document.createElement('a');
+                a.href = record.thumbnail;
+                a.download = (record.category || 'doc') + '_' + (record.name || record.familyMember || 'record') + '.' + ext;
+                a.click();
+            }
+        } catch (err) {
+            console.log('Share canceled or failed:', err);
+        }
+    }
+
+    function safeStr(val) {
+        return val ? String(val).replace(/</g, "&lt;").replace(/>/g, "&gt;") : 'N/A';
+    }
+</script>
+</body>
+</html>
