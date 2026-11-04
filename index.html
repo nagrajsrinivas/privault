@@ -761,7 +761,7 @@
         if (pwdBtn) pwdBtn.onclick = handlePasswordUnlock;
 
         var savePhoneBtn = document.getElementById('btn-save-phone');
-        if (savePhoneBtn) savePhoneBtn.onclick = handleSavePhone();
+        if (savePhoneBtn) savePhoneBtn.onclick = handleSavePhone;
 
         var openSettingsBtn = document.getElementById('btn-open-settings');
         if (openSettingsBtn) openSettingsBtn.onclick = function() { loadSettingsToModal(); document.getElementById('settings-modal').style.display = 'flex'; };
@@ -791,7 +791,7 @@
         };
 
         var exportBtn = document.getElementById('btn-export');
-        if (exportBtn) exportBtn.onclick = handleExport();
+        if (exportBtn) exportBtn.onclick = handleExport;
 
         var triggerImportBtn = document.getElementById('btn-trigger-import');
         if (triggerImportBtn) triggerImportBtn.onclick = function() { document.getElementById('import-file-input').click(); };
@@ -2248,16 +2248,7 @@
     autoPushLocalWifiBackup();
     alert('Mobile ID bound successfully.');
 
-    function handleExport() {
-        if (!appState.encryptionKey) return alert('Unlock vault first.');
-        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(localStorage.getItem('privault_secure_db') + "|" + localStorage.getItem('privault_cred_id'));
-        var downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", "privault_backup.txt");
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
-    }
+
 
     function handleImport(e) {
         var file = e.target.files[0];
@@ -2279,6 +2270,62 @@
         reader.readAsText(file);
     }
 
+
+
+    function openDocumentViewer(dataUrl, event) {
+        if (event) event.stopPropagation();
+        var modal = document.createElement('div');
+        modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;";
+        
+        var isPdf = dataUrl.startsWith('data:application/pdf');
+        if (isPdf) {
+            modal.innerHTML = '<div style="position:relative; width:90%; height:90%; background:#fff; border-radius:8px; overflow:hidden;">' +
+                '<button onclick="this.parentElement.parentElement.remove()" style="position:absolute; top:10px; right:10px; z-index:10000; background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">Close ✕</button>' +
+                '<iframe src="' + dataUrl + '" style="width:100%; height:100%; border:none;"></iframe>' +
+            '</div>';
+        } else {
+            modal.innerHTML = '<div style="position:relative; max-width:90%; max-height:90%;">' +
+                '<button onclick="this.parentElement.parentElement.remove()" style="position:absolute; top:-40px; right:0; background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">Close ✕</button>' +
+                '<img src="' + dataUrl + '" style="max-width:90vw; max-height:85vh; border-radius:8px; display:block;" />' +
+            '</div>';
+        }
+        document.body.appendChild(modal);
+    }
+
+    async function shareDocumentImage(recordId, event) {
+        if (event) event.stopPropagation();
+        var record = appState.records.find(function(r) { return r.id === recordId; });
+        if (!record || !record.thumbnail) return alert('No file attached to share.');
+
+        try {
+            var res = await fetch(record.thumbnail);
+            var blob = await res.blob();
+            var isPdf = record.thumbnail.startsWith('data:application/pdf');
+            var ext = isPdf ? 'pdf' : 'webp';
+            var mime = isPdf ? 'application/pdf' : 'image/webp';
+            var file = new File([blob], (record.category || 'doc') + '_' + (record.name || record.familyMember || record.lenderName || 'record') + '.' + ext, { type: mime });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    title: record.category + ' - ' + (record.name || record.familyMember || ''),
+                    text: 'Secure document attachment from PriVaultHub',
+                    files: [file]
+                });
+            } else {
+                var a = document.createElement('a');
+                a.href = record.thumbnail;
+                a.download = (record.category || 'doc') + '_' + (record.name || record.familyMember || 'record') + '.' + ext;
+                a.click();
+            }
+        } catch (err) {
+            console.log('Share canceled or failed:', err);
+        }
+    }
+
+    function safeStr(val) {
+        return val ? String(val).replace(/</g, "&lt;").replace(/>/g, "&gt;") : 'N/A';
+    }
+}
     function renderAll() {
         if (!appState.encryptionKey) return;
         var searchInput = document.getElementById('global-search');
@@ -2372,61 +2419,22 @@
             if (masterGrid) masterGrid.innerHTML += cardHTML;
         });
     }
-
-    function openDocumentViewer(dataUrl, event) {
-        if (event) event.stopPropagation();
-        var modal = document.createElement('div');
-        modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;";
-        
-        var isPdf = dataUrl.startsWith('data:application/pdf');
-        if (isPdf) {
-            modal.innerHTML = '<div style="position:relative; width:90%; height:90%; background:#fff; border-radius:8px; overflow:hidden;">' +
-                '<button onclick="this.parentElement.parentElement.remove()" style="position:absolute; top:10px; right:10px; z-index:10000; background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">Close ✕</button>' +
-                '<iframe src="' + dataUrl + '" style="width:100%; height:100%; border:none;"></iframe>' +
-            '</div>';
-        } else {
-            modal.innerHTML = '<div style="position:relative; max-width:90%; max-height:90%;">' +
-                '<button onclick="this.parentElement.parentElement.remove()" style="position:absolute; top:-40px; right:0; background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">Close ✕</button>' +
-                '<img src="' + dataUrl + '" style="max-width:90vw; max-height:85vh; border-radius:8px; display:block;" />' +
-            '</div>';
+        function handleExport() {
+        if (!appState.encryptionKey) return alert('Unlock vault first.');
+        var secureDb = localStorage.getItem('privault_secure_db');
+        var credId = localStorage.getItem('privault_cred_id') || '';
+        if (!secureDb) {
+            alert('No encrypted database found to export.');
+            return;
         }
-        document.body.appendChild(modal);
+        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(localStorage.getItem('privault_secure_db') + "|" + localStorage.getItem('privault_cred_id'));
+        var downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", "privault_backup.txt");
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
     }
-
-    async function shareDocumentImage(recordId, event) {
-        if (event) event.stopPropagation();
-        var record = appState.records.find(function(r) { return r.id === recordId; });
-        if (!record || !record.thumbnail) return alert('No file attached to share.');
-
-        try {
-            var res = await fetch(record.thumbnail);
-            var blob = await res.blob();
-            var isPdf = record.thumbnail.startsWith('data:application/pdf');
-            var ext = isPdf ? 'pdf' : 'webp';
-            var mime = isPdf ? 'application/pdf' : 'image/webp';
-            var file = new File([blob], (record.category || 'doc') + '_' + (record.name || record.familyMember || record.lenderName || 'record') + '.' + ext, { type: mime });
-
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    title: record.category + ' - ' + (record.name || record.familyMember || ''),
-                    text: 'Secure document attachment from PriVaultHub',
-                    files: [file]
-                });
-            } else {
-                var a = document.createElement('a');
-                a.href = record.thumbnail;
-                a.download = (record.category || 'doc') + '_' + (record.name || record.familyMember || 'record') + '.' + ext;
-                a.click();
-            }
-        } catch (err) {
-            console.log('Share canceled or failed:', err);
-        }
-    }
-
-    function safeStr(val) {
-        return val ? String(val).replace(/</g, "&lt;").replace(/>/g, "&gt;") : 'N/A';
-    }
-}
 </script>
 </body>
 </html>
