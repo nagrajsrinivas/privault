@@ -634,7 +634,7 @@
 
     window.onload = function() {
         initApp();
-        if (savePhoneBtn) savePhoneBtn.onclick = handleSavePhone();
+        if (savePhoneBtn) savePhoneBtn.onclick = handleSavePhone;
     };
 
     async function probeLocalServerConnection() {
@@ -2247,6 +2247,7 @@
     renderAll();
     autoPushLocalWifiBackup();
     alert('Mobile ID bound successfully.');
+}
 
 
 
@@ -2325,7 +2326,7 @@
     function safeStr(val) {
         return val ? String(val).replace(/</g, "&lt;").replace(/>/g, "&gt;") : 'N/A';
     }
-}
+
     function renderAll() {
         if (!appState.encryptionKey) return;
         var searchInput = document.getElementById('global-search');
