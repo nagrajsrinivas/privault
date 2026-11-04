@@ -634,7 +634,7 @@
 
     window.onload = function() {
         initApp();
-        if (savePhoneBtn) savePhoneBtn.onclick = handleSavePhone;
+        if (savePhoneBtn) savePhoneBtn.onclick = handleSavePhone();
     };
 
     async function probeLocalServerConnection() {
@@ -761,7 +761,7 @@
         if (pwdBtn) pwdBtn.onclick = handlePasswordUnlock;
 
         var savePhoneBtn = document.getElementById('btn-save-phone');
-        if (savePhoneBtn) savePhoneBtn.onclick = handleSavePhone;
+        if (savePhoneBtn) savePhoneBtn.onclick = handleSavePhone();
 
         var openSettingsBtn = document.getElementById('btn-open-settings');
         if (openSettingsBtn) openSettingsBtn.onclick = function() { loadSettingsToModal(); document.getElementById('settings-modal').style.display = 'flex'; };
@@ -791,7 +791,7 @@
         };
 
         var exportBtn = document.getElementById('btn-export');
-        if (exportBtn) exportBtn.onclick = handleExport;
+        if (exportBtn) exportBtn.onclick = handleExport();
 
         var triggerImportBtn = document.getElementById('btn-trigger-import');
         if (triggerImportBtn) triggerImportBtn.onclick = function() { document.getElementById('import-file-input').click(); };
